@@ -13,6 +13,8 @@
   <link rel="apple-touch-icon" href="/icon.svg">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <style>
     :root {
       --orange: #FC4C02;
@@ -43,12 +45,21 @@
     .nav-right{display:flex;align-items:center;gap:8px;flex-shrink:0;}
     .badge{display:none;align-items:center;gap:8px;font-size:13px;font-weight:600;}
     .badge img{width:30px;height:30px;border-radius:50%;border:2px solid var(--orange);object-fit:cover;}
+    .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;background:none;border:none;cursor:pointer;padding:4px;flex-shrink:0;}
+    .hamburger span{display:block;height:2px;width:100%;background:var(--text);border-radius:2px;transition:transform .2s,opacity .2s;}
+    .hamburger.open span:nth-child(1){transform:translateY(7px) rotate(45deg);}
+    .hamburger.open span:nth-child(2){opacity:0;}
+    .hamburger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg);}
+    .mobile-menu{display:none;position:fixed;top:52px;left:0;right:0;background:var(--surface);border-bottom:1px solid var(--border);z-index:99;flex-direction:column;padding:8px 14px 14px;}
+    .mobile-menu.open{display:flex;}
+    .mobile-menu .nav-link{text-align:left;padding:10px 12px;font-size:14px;border-radius:6px;width:100%;}
     @media(max-width:768px){
       nav{padding:0 14px;height:52px;}
-      .nav-links{gap:0;}
-      .nav-link{padding:6px 8px;font-size:12px;}
+      .nav-links{display:none;}
+      .hamburger{display:flex;}
       .badge span{display:none;}
       .btn{padding:6px 12px;font-size:11px;}
+      .nav-right{gap:5px;}
     }
     .btn{border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
     .btn-primary{background:var(--orange);color:#fff;}
@@ -195,6 +206,35 @@
       .eddy-wrap{flex-direction:column;}
       .chart-wrap{height:180px;}
     }
+    /* ── MONTHLY TABLE ── */
+    .month-table{width:100%;border-collapse:collapse;font-size:13px;}
+    .month-table th{text-align:left;padding:8px 14px;font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border);}
+    .month-table td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text);}
+    .month-table tr:last-child td{border-bottom:none;}
+    .month-table tr:hover td{background:var(--surface2);}
+    .month-table .num{font-weight:700;font-variant-numeric:tabular-nums;}
+    .month-table .dim{color:var(--muted);font-size:11px;}
+    /* ── BEST EFFORTS CARD ── */
+    .best-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;}
+    .best-card-title{font-size:10px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--orange);margin-bottom:12px;}
+    .best-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+    .best-row:last-child{border-bottom:none;}
+    .best-rank{width:20px;font-size:11px;font-weight:700;color:var(--muted);flex-shrink:0;}
+    .best-rank.gold{color:#f5c518;}
+    .best-rank.silver{color:#aaa;}
+    .best-rank.bronze{color:#cd7f32;}
+    .best-name{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 8px;}
+    .best-val{font-size:14px;font-weight:800;color:var(--text);flex-shrink:0;}
+    /* ── GEAR CARD ── */
+    .gear-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:20px;}
+    .gear-primary{font-size:9px;font-weight:700;letter-spacing:.06em;background:var(--orange-dim);color:var(--orange);border-radius:4px;padding:2px 7px;text-transform:uppercase;margin-left:8px;}
+    .gear-name{font-size:16px;font-weight:800;margin-bottom:4px;display:flex;align-items:center;}
+    .gear-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px;}
+    .gear-stat-val{font-size:20px;font-weight:800;color:var(--text);}
+    .gear-stat-lbl{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+    /* ── YEAR PILL ── */
+    .year-btn{background:var(--surface2);border:1px solid var(--border);color:var(--muted);border-radius:20px;padding:4px 14px;font-size:12px;font-weight:700;cursor:pointer;}
+    .year-btn.active{background:var(--orange-dim);border-color:var(--orange);color:var(--orange);}
   </style>
 </head>
 <body>
@@ -204,6 +244,9 @@
     <svg class="logo-icon" viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
     Strava
   </div>
+  <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
   <div class="nav-links" id="navLinks" style="opacity:.3;pointer-events:none">
     <button class="nav-link" onclick="navScrollTo('statRow',this)">Overview</button>
     <button class="nav-link" onclick="navScrollTo('cyclingSection',this)">Cycling</button>
@@ -211,6 +254,10 @@
     <button class="nav-link" onclick="navScrollTo('actSection',this)">Activities</button>
     <button class="nav-link" onclick="navScrollTo('calSection',this)">Calendar</button>
     <button class="nav-link" onclick="navScrollTo('eddySection',this)">Eddington</button>
+    <button class="nav-link" onclick="navScrollTo('monthlySection',this)">Monthly</button>
+    <button class="nav-link" onclick="navScrollTo('bestSection',this)">Best Efforts</button>
+    <button class="nav-link" onclick="navScrollTo('gearSection',this)">Gear</button>
+    <button class="nav-link" onclick="navScrollTo('heatSection',this)">Heatmap</button>
   </div>
   <div class="nav-right">
     <div class="badge" id="badge">
@@ -222,6 +269,7 @@
     <button class="btn btn-primary" id="mainBtn" disabled>Loading…</button>
   </div>
 </nav>
+<div class="mobile-menu" id="mobileMenu"></div>
 
 <main>
   <div id="statusBar"><div class="spin"></div> Connecting to Strava…</div>
@@ -317,6 +365,35 @@
           <div class="chart-wrap sm"><canvas id="eddyChart"></canvas></div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <!-- MONTHLY STATS -->
+  <div id="monthlySection" style="display:none">
+    <div class="section-title">Monthly Stats</div>
+    <div class="card">
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;" id="yearBtns"></div>
+      <div id="monthlyTable" style="overflow-x:auto;"></div>
+    </div>
+  </div>
+
+  <!-- BEST EFFORTS -->
+  <div id="bestSection" style="display:none">
+    <div class="section-title">Best Efforts</div>
+    <div id="bestGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;"></div>
+  </div>
+
+  <!-- GEAR -->
+  <div id="gearSection" style="display:none">
+    <div class="section-title">Gear</div>
+    <div id="gearGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;"></div>
+  </div>
+
+  <!-- HEATMAP -->
+  <div id="heatSection" style="display:none">
+    <div class="section-title">Activity Heatmap</div>
+    <div class="card" style="padding:0;overflow:hidden;border-radius:12px;">
+      <div id="leafletMap" style="height:520px;"></div>
     </div>
   </div>
 
@@ -525,6 +602,7 @@ async function loadData(forceRefresh = false) {
 
 /* ── RENDER ── */
 function renderAthlete(a) {
+  currentAthlete = a;
   document.getElementById('av').src    = a.profile_medium||a.profile||'';
   document.getElementById('aname').textContent = a.firstname+' '+a.lastname;
   document.getElementById('badge').style.display = 'flex';
@@ -546,6 +624,12 @@ function renderAll() {
   renderCalendar();
   renderEddington();
   ['statRow','cyclingSection','trendsSection','actSection','calSection','eddySection']
+    .forEach(id => document.getElementById(id).style.display='');
+  renderMonthly();
+  renderBestEfforts();
+  renderGear();
+  renderHeatmap();
+  ['monthlySection','bestSection','gearSection','heatSection']
     .forEach(id => document.getElementById(id).style.display='');
   document.getElementById('shareBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = '';
@@ -1650,6 +1734,180 @@ if (!CONFIG.refreshToken) {
 } else {
   loadData();
 }
+
+/* ── NEW SECTIONS: globals ── */
+let currentAthlete = null;
+let leafletMapInst = null;
+
+/* ── MONTHLY STATS ── */
+function renderMonthly(filterYear) {
+  const years = [...new Set(acts.map(a=>new Date(a.start_date).getFullYear()))].sort((a,b)=>b-a);
+  const yr = filterYear || years[0];
+
+  // year buttons
+  const yb = document.getElementById('yearBtns');
+  yb.innerHTML = years.map(y=>`<button class="year-btn${y===yr?' active':''}" onclick="renderMonthly(${y})">${y}</button>`).join('');
+
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const rows = {};
+  acts.filter(a=>new Date(a.start_date).getFullYear()===yr).forEach(a=>{
+    const m = new Date(a.start_date).getMonth();
+    if(!rows[m]) rows[m]={rides:0,dist:0,elev:0,time:0,speed:[],hr:[]};
+    rows[m].rides++;
+    rows[m].dist += a.distance||0;
+    rows[m].elev += a.total_elevation_gain||0;
+    rows[m].time += a.moving_time||0;
+    if(a.average_speed) rows[m].speed.push(a.average_speed);
+    if(a.average_heartrate) rows[m].hr.push(a.average_heartrate);
+  });
+
+  let html = `<table class="month-table">
+    <thead><tr>
+      <th>Month</th><th>Rides</th><th>Distance</th><th>Elevation</th><th>Moving Time</th><th>Avg Speed</th><th>Avg HR</th>
+    </tr></thead><tbody>`;
+
+  let totR=0,totD=0,totE=0,totT=0,allSpd=[],allHr=[];
+  for(let m=0;m<12;m++){
+    const r=rows[m];
+    if(!r){html+=`<tr><td class="dim">${MONTHS[m]}</td><td colspan="6" class="dim">—</td></tr>`;continue;}
+    totR+=r.rides;totD+=r.dist;totE+=r.elev;totT+=r.time;
+    allSpd=[...allSpd,...r.speed];allHr=[...allHr,...r.hr];
+    const avgSpd=r.speed.length?r.speed.reduce((a,b)=>a+b,0)/r.speed.length:0;
+    const avgHr=r.hr.length?Math.round(r.hr.reduce((a,b)=>a+b,0)/r.hr.length):null;
+    html+=`<tr>
+      <td style="font-weight:700">${MONTHS[m]}</td>
+      <td class="num">${r.rides}</td>
+      <td class="num">${(r.dist/1000).toFixed(1)} <span class="dim">km</span></td>
+      <td class="num">${Math.round(r.elev).toLocaleString()} <span class="dim">m</span></td>
+      <td class="num">${fmtT(r.time)}</td>
+      <td class="num">${avgSpd?(avgSpd*3.6).toFixed(1)+' <span class="dim">km/h</span>':'—'}</td>
+      <td class="num">${avgHr?avgHr+' <span class="dim">bpm</span>':'—'}</td>
+    </tr>`;
+  }
+
+  const totAvgSpd=allSpd.length?allSpd.reduce((a,b)=>a+b,0)/allSpd.length:0;
+  const totAvgHr=allHr.length?Math.round(allHr.reduce((a,b)=>a+b,0)/allHr.length):null;
+  html+=`<tr style="border-top:2px solid var(--orange);font-weight:700">
+    <td>Total</td>
+    <td class="num">${totR}</td>
+    <td class="num">${(totD/1000).toFixed(1)} <span class="dim">km</span></td>
+    <td class="num">${Math.round(totE).toLocaleString()} <span class="dim">m</span></td>
+    <td class="num">${fmtT(totT)}</td>
+    <td class="num">${totAvgSpd?(totAvgSpd*3.6).toFixed(1)+' <span class="dim">km/h</span>':'—'}</td>
+    <td class="num">${totAvgHr?totAvgHr+' <span class="dim">bpm</span>':'—'}</td>
+  </tr>`;
+  html+=`</tbody></table>`;
+  document.getElementById('monthlyTable').innerHTML=html;
+}
+
+/* ── BEST EFFORTS ── */
+function renderBestEfforts(){
+  const CATS=[
+    {title:'Longest Rides',key:'distance',fmt:a=>(a/1000).toFixed(1)+' km',sort:(a,b)=>(b.distance||0)-(a.distance||0)},
+    {title:'Most Elevation',key:'total_elevation_gain',fmt:a=>Math.round(a).toLocaleString()+' m',sort:(a,b)=>(b.total_elevation_gain||0)-(a.total_elevation_gain||0)},
+    {title:'Fastest Avg Speed',key:'average_speed',fmt:a=>(a*3.6).toFixed(1)+' km/h',sort:(a,b)=>(b.average_speed||0)-(a.average_speed||0)},
+    {title:'Highest Max Speed',key:'max_speed',fmt:a=>(a*3.6).toFixed(1)+' km/h',sort:(a,b)=>(b.max_speed||0)-(a.max_speed||0)},
+    {title:'Highest Heart Rate',key:'max_heartrate',fmt:a=>Math.round(a)+' bpm',sort:(a,b)=>(b.max_heartrate||0)-(a.max_heartrate||0)},
+    {title:'Highest Suffer Score',key:'suffer_score',fmt:a=>Math.round(a),sort:(a,b)=>(b.suffer_score||0)-(a.suffer_score||0)},
+  ];
+  const MEDALS=['🥇','🥈','🥉'];
+  const el=document.getElementById('bestGrid');
+  el.innerHTML=CATS.map(cat=>{
+    const sorted=acts.filter(a=>a[cat.key]>0).sort(cat.sort).slice(0,5);
+    if(!sorted.length) return '';
+    const rows=sorted.map((a,i)=>`
+      <div class="best-row">
+        <div class="best-rank ${i===0?'gold':i===1?'silver':i===2?'bronze':''}">${MEDALS[i]||i+1}</div>
+        <div class="best-name">${a.name||'Activity'} <span style="color:var(--muted);font-size:10px;">${fmtDt(a.start_date)}</span></div>
+        <div class="best-val">${cat.fmt(a[cat.key])}</div>
+      </div>`).join('');
+    return `<div class="best-card"><div class="best-card-title">${cat.title}</div>${rows}</div>`;
+  }).join('');
+}
+
+/* ── GEAR ── */
+function renderGear(){
+  const el=document.getElementById('gearGrid');
+  const bikes=(currentAthlete&&currentAthlete.bikes)||[];
+  if(!bikes.length){el.innerHTML='<div class="card" style="color:var(--muted);font-size:13px;">No gear data — gear information is pulled from your Strava profile.</div>';return;}
+
+  // compute per-bike stats from activities
+  const bikeStats={};
+  acts.forEach(a=>{
+    if(!a.gear_id) return;
+    if(!bikeStats[a.gear_id]) bikeStats[a.gear_id]={rides:0,dist:0,elev:0};
+    bikeStats[a.gear_id].rides++;
+    bikeStats[a.gear_id].dist+=a.distance||0;
+    bikeStats[a.gear_id].elev+=a.total_elevation_gain||0;
+  });
+
+  el.innerHTML=bikes.map(b=>{
+    const st=bikeStats[b.id]||{rides:0,dist:0,elev:0};
+    return `<div class="gear-card">
+      <div class="gear-name">${b.nickname||b.name||'Bike'}${b.primary?'<span class="gear-primary">Primary</span>':''}</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:2px;">${b.name||''}</div>
+      <div class="gear-stats">
+        <div><div class="gear-stat-val">${((b.distance||st.dist)/1000).toFixed(0)}</div><div class="gear-stat-lbl">Total km</div></div>
+        <div><div class="gear-stat-val">${st.rides}</div><div class="gear-stat-lbl">Rides logged</div></div>
+        <div><div class="gear-stat-val">${st.elev?Math.round(st.elev/1000).toFixed(1)+'k':'—'}</div><div class="gear-stat-lbl">Elevation m</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/* ── HEATMAP ── */
+function renderHeatmap(){
+  if(!window.L){setTimeout(renderHeatmap,300);return;}
+  const el=document.getElementById('leafletMap');
+  if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
+
+  leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true});
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
+    attribution:'&copy; <a href="https://carto.com">CARTO</a>',maxZoom:19,subdomains:'abcd'
+  }).addTo(leafletMapInst);
+
+  const bounds=[];
+  acts.forEach(a=>{
+    if(!a.map||!a.map.summary_polyline) return;
+    try{
+      const pts=decodePolyline(a.map.summary_polyline);
+      if(!pts.length) return;
+      const latlngs=pts.map(p=>[p[0],p[1]]);
+      L.polyline(latlngs,{color:'#FC4C02',weight:1.5,opacity:0.65}).addTo(leafletMapInst);
+      latlngs.forEach(ll=>bounds.push(ll));
+    }catch{}
+  });
+
+  if(bounds.length) leafletMapInst.fitBounds(bounds,{padding:[20,20]});
+  else leafletMapInst.setView([0,0],2);
+}
+
+/* ── HAMBURGER MENU ── */
+(function(){
+  const btn=document.getElementById('hamburgerBtn');
+  const menu=document.getElementById('mobileMenu');
+  if(!btn||!menu) return;
+  // clone nav links into mobile menu
+  const links=document.getElementById('navLinks');
+  function syncMenu(){
+    menu.innerHTML='';
+    links.querySelectorAll('.nav-link').forEach(l=>{
+      const cl=l.cloneNode(true);
+      cl.addEventListener('click',()=>{menu.classList.remove('open');btn.classList.remove('open');});
+      menu.appendChild(cl);
+    });
+  }
+  syncMenu();
+  btn.addEventListener('click',()=>{
+    btn.classList.toggle('open');
+    menu.classList.toggle('open');
+  });
+  document.addEventListener('click',e=>{
+    if(!btn.contains(e.target)&&!menu.contains(e.target)){
+      btn.classList.remove('open');menu.classList.remove('open');
+    }
+  });
+})();
 </script>
 <script>
 if('serviceWorker' in navigator){
