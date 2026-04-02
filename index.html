@@ -37,7 +37,7 @@
     nav{display:flex;align-items:center;justify-content:space-between;padding:0 28px;height:56px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;gap:16px;}
     .logo{display:flex;align-items:center;gap:9px;font-size:18px;font-weight:800;letter-spacing:-.4px;flex-shrink:0;}
     .logo-icon{width:26px;height:26px;fill:var(--orange);}
-    .nav-links{display:flex;align-items:center;gap:2px;flex:1;overflow-x:auto;}
+    .nav-links{display:none;align-items:center;gap:2px;flex:1;overflow-x:auto;}
     .nav-links::-webkit-scrollbar{display:none;}
     .nav-link{background:none;border:none;color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;padding:6px 12px;border-radius:6px;transition:color .15s,background .15s;white-space:nowrap;flex-shrink:0;}
     .nav-link:hover{color:var(--text);background:var(--surface2);}
@@ -55,11 +55,15 @@
     .mobile-menu .nav-link{text-align:left;padding:10px 12px;font-size:14px;border-radius:6px;width:100%;}
     @media(max-width:768px){
       nav{padding:0 14px;height:52px;}
-      .nav-links{display:none;}
       .hamburger{display:flex;}
       .badge span{display:none;}
       .btn{padding:6px 12px;font-size:11px;}
+      #shareBtn,#logoutBtn,#demoBtn,#mainBtn,#resetBtn{display:none!important;}
       .nav-right{gap:5px;}
+    }
+    @media(min-width:769px){
+      #badge{display:none!important;}
+      .hamburger{display:none!important;}
     }
     .btn{border:none;padding:7px 16px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;transition:opacity .15s;}
     .btn-primary{background:var(--orange);color:#fff;}
@@ -68,8 +72,27 @@
     .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted);}
     .btn-ghost:hover{border-color:var(--orange);color:var(--orange);}
 
+    /* ── APP LAYOUT + SIDEBAR ── */
+    .app-layout{display:flex;align-items:flex-start;min-height:calc(100vh - 56px);}
+    .sidebar{width:220px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);position:sticky;top:56px;height:calc(100vh - 56px);display:flex;flex-direction:column;overflow:hidden;z-index:50;}
+    .sidebar-user{padding:12px 14px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+    .sidebar-user img{width:36px;height:36px;border-radius:50%;border:2px solid var(--orange);object-fit:cover;flex-shrink:0;}
+    .sidebar-user-info{min-width:0;}
+    .sidebar-user-name{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .sidebar-user-sub{font-size:11px;color:var(--muted);}
+    .sidebar-nav{flex:1;overflow-y:auto;padding:6px 0;}
+    .sidebar-nav::-webkit-scrollbar{width:3px;}
+    .sidebar-nav::-webkit-scrollbar-thumb{background:var(--border);}
+    .sidebar-nav .nav-link{display:block;width:100%;text-align:left;padding:9px 18px;font-size:13px;border-radius:0;border-left:2px solid transparent;margin:0;white-space:nowrap;}
+    .sidebar-nav .nav-link.active{border-left-color:var(--orange);background:var(--orange-dim);color:var(--orange);}
+    .sidebar-nav .nav-link:hover{background:var(--surface2);color:var(--text);}
+    @media(max-width:768px){
+      .app-layout{display:block;}
+      .sidebar{display:none;}
+    }
+
     /* ── LAYOUT ── */
-    main{max-width:1300px;margin:0 auto;padding:24px 20px;}
+    main{padding:24px 20px;flex:1;min-width:0;max-width:1280px;}
     .section-title{font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin-bottom:14px;margin-top:28px;}
     .section-title:first-child{margin-top:0;}
 
@@ -169,11 +192,31 @@
     .layout-btn canvas{width:100%;display:block;}
     .layout-btn span{font-size:9px;font-weight:700;letter-spacing:.04em;color:var(--muted);text-transform:uppercase;}
     @media(max-width:700px){
-      .modal-body{grid-template-columns:1fr;}
-      .modal-body .story-preview{order:-1;max-height:55vw;aspect-ratio:9/16;}
+      .modal-overlay{padding:0;align-items:flex-end;}
+      .modal{border-radius:16px 16px 0 0;max-height:95vh;padding:14px 12px 20px;}
+      .modal-body{grid-template-columns:1fr;gap:12px;}
+      .story-preview{height:55vw!important;width:auto!important;aspect-ratio:9/16;margin:0 auto;}
       .layout-grid{grid-template-columns:repeat(5,1fr);}
-      .modal{padding:12px;gap:10px;border-radius:12px;}
-      .color-swatch{width:26px;height:26px;}
+      .color-swatch{width:24px;height:24px;}
+      .modal-actions{flex-direction:row;}
+    }
+    /* ── ACHIEVEMENT BADGES ── */
+    .ach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin-bottom:28px;}
+    .ach-badge{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px 12px;text-align:center;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;gap:6px;transition:border-color .2s;}
+    .ach-badge.unlocked{border-color:var(--ach-color,var(--orange));}
+    .ach-badge:not(.unlocked){opacity:.35;}
+    .ach-badge-bar{position:absolute;top:0;left:0;right:0;height:3px;background:var(--ach-color,var(--orange));border-radius:3px 3px 0 0;}
+    .ach-badge-img{width:56px;height:56px;object-fit:contain;border-radius:50%;}
+    .ach-badge-img-fallback{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:30px;background:rgba(0,0,0,0.15);}
+    .ach-badge-val{font-size:20px;font-weight:800;line-height:1;}
+    .ach-badge-unit{font-size:10px;color:var(--muted);}
+    .ach-badge-name{font-size:11px;font-weight:700;color:var(--text);}
+    .kom-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+    .kom-item{background:var(--surface);border:1px solid #ffd70033;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:10px;}
+    .kom-crown{width:34px;height:34px;border-radius:50%;background:#ffd70015;border:1.5px solid #ffd700;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    @media(max-width:600px){
+      .ach-grid{grid-template-columns:repeat(2,1fr);}
+      .kom-list{grid-template-columns:1fr;}
     }
 
     /* ── EDDINGTON ── */
@@ -251,9 +294,7 @@
     <svg class="logo-icon" viewBox="0 0 24 24"><path d="M15.387 17.944l-2.089-4.116h-3.065L15.387 24l5.15-10.172h-3.066m-7.008-5.599l2.836 5.598h4.172L10.463 0 4 13.828h4.172"/></svg>
     Strava
   </div>
-  <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
-    <span></span><span></span><span></span>
-  </button>
+  <!-- hidden nav-links kept for hamburger mobile menu sync -->
   <div class="nav-links" id="navLinks" style="opacity:.3;pointer-events:none">
     <button class="nav-link" onclick="navScrollTo('statRow',this)">Overview</button>
     <button class="nav-link" onclick="navScrollTo('cyclingSection',this)">Cycling</button>
@@ -271,6 +312,9 @@
     <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Achievements</button>
     <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
   </div>
+  <button class="hamburger" id="hamburgerBtn" aria-label="Menu">
+    <span></span><span></span><span></span>
+  </button>
   <div class="nav-right">
     <div class="badge" id="badge">
       <img id="av" src="" alt="" /><span id="aname"></span>
@@ -283,6 +327,34 @@
   </div>
 </nav>
 <div class="mobile-menu" id="mobileMenu"></div>
+
+<div class="app-layout">
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-user" id="sidebarUser" style="display:none">
+    <img id="sidebarAv" src="" alt="">
+    <div class="sidebar-user-info">
+      <div class="sidebar-user-name" id="sidebarName"></div>
+      <div class="sidebar-user-sub">Athlete</div>
+    </div>
+  </div>
+  <nav class="sidebar-nav" id="sidebarNav" style="opacity:.3;pointer-events:none">
+    <button class="nav-link" onclick="navScrollTo('statRow',this)">Overview</button>
+    <button class="nav-link" onclick="navScrollTo('cyclingSection',this)">Cycling</button>
+    <button class="nav-link" onclick="navScrollTo('trendsSection',this)">Trends</button>
+    <button class="nav-link" onclick="navScrollTo('actSection',this)">Activities</button>
+    <button class="nav-link" onclick="navScrollTo('calSection',this)">Calendar</button>
+    <button class="nav-link" onclick="navScrollTo('eddySection',this)">Eddington</button>
+    <button class="nav-link" onclick="navScrollTo('monthlySection',this)">Monthly</button>
+    <button class="nav-link" onclick="navScrollTo('bestSection',this)">Best Efforts</button>
+    <button class="nav-link" onclick="navScrollTo('gearSection',this)">Gear</button>
+    <button class="nav-link" onclick="navScrollTo('heatSection',this)">Heatmap</button>
+    <button class="nav-link" onclick="navScrollTo('segmentsSection',this)">Segments</button>
+    <button class="nav-link" onclick="navScrollTo('milestonesSection',this)">Milestones</button>
+    <button class="nav-link" onclick="navScrollTo('rewindSection',this)">Rewind</button>
+    <button class="nav-link" onclick="navScrollTo('challengesSection',this)">Achievements</button>
+    <button class="nav-link" onclick="navScrollTo('photosSection',this)">Photos</button>
+  </nav>
+</aside>
 
 <main>
   <div id="statusBar"><div class="spin"></div> Connecting to Strava…</div>
@@ -434,7 +506,7 @@
   <!-- CHALLENGES / KOMs -->
   <div id="challengesSection" style="display:none">
     <div class="section-title">Achievements & KOMs</div>
-    <div id="challengesGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:14px;"></div>
+    <div id="challengesGrid"></div>
   </div>
 
   <!-- PHOTOS -->
@@ -444,6 +516,7 @@
   </div>
 
 </main>
+</div><!-- /.app-layout -->
 
 <!-- STORY MODAL -->
 <div class="modal-overlay" id="storyModal">
@@ -475,6 +548,21 @@
             <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 10px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);" id="lbl-hideDate">
               <input type="checkbox" id="chk-hideDate" style="accent-color:var(--orange);"> Hide Date
             </label>
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:5px 10px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);" id="lbl-hideRoute">
+              <input type="checkbox" id="chk-hideRoute" style="accent-color:var(--orange);"> Hide Map
+            </label>
+          </div>
+        </div>
+
+        <div>
+          <div class="picker-label">Background Image</div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:6px 12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);">
+              📁 Upload Photo
+              <input type="file" id="bgImageInput" accept="image/*" style="display:none">
+            </label>
+            <button class="btn btn-ghost" id="clearBgBtn" style="font-size:11px;padding:5px 10px;display:none">✕ Clear</button>
+            <span id="bgImageName" style="font-size:11px;color:var(--muted);"></span>
           </div>
         </div>
 
@@ -494,6 +582,12 @@
             <button class="color-swatch"        data-scheme="night"  style="background:linear-gradient(135deg,#0a0c1c,#10142a);" title="Night"></button>
             <button class="color-swatch"        data-scheme="forest" style="background:linear-gradient(135deg,#0a160a,#162a16);" title="Forest"></button>
             <button class="color-swatch"        data-scheme="slate"  style="background:linear-gradient(135deg,#0e1420,#141e30);" title="Slate"></button>
+            <button class="color-swatch"        data-scheme="gold"   style="background:linear-gradient(135deg,#b8860b,#ffd700);" title="Gold"></button>
+            <button class="color-swatch"        data-scheme="silver" style="background:linear-gradient(135deg,#888,#e0e0e0);" title="Silver"></button>
+            <button class="color-swatch"        data-scheme="bronze" style="background:linear-gradient(135deg,#7a4a1e,#cd7f32);" title="Bronze"></button>
+            <button class="color-swatch"        data-scheme="rosegold" style="background:linear-gradient(135deg,#b5787a,#f4c2c2);" title="Rose Gold"></button>
+            <button class="color-swatch"        data-scheme="emerald" style="background:linear-gradient(135deg,#004d2e,#00a86b);" title="Emerald"></button>
+            <button class="color-swatch"        data-scheme="sapphire" style="background:linear-gradient(135deg,#0a1f5c,#1e56c8);" title="Sapphire"></button>
           </div>
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
             <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">
@@ -652,42 +746,66 @@ function renderAthlete(a) {
   document.getElementById('av').src    = a.profile_medium||a.profile||'';
   document.getElementById('aname').textContent = a.firstname+' '+a.lastname;
   document.getElementById('badge').style.display = 'flex';
+  // Update sidebar user profile
+  const su=document.getElementById('sidebarUser');
+  if(su){
+    document.getElementById('sidebarAv').src=a.profile_medium||a.profile||'';
+    document.getElementById('sidebarName').textContent=a.firstname+' '+a.lastname;
+    su.style.display='flex';
+  }
 }
 
+const _ALL_SECTIONS=['statRow','cyclingSection','trendsSection','actSection','calSection',
+  'eddySection','monthlySection','bestSection','gearSection','heatSection',
+  'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection'];
+
 function navScrollTo(id, btn) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  el.scrollIntoView({ behavior:'smooth', block:'start' });
+  _ALL_SECTIONS.forEach(s=>{const el=document.getElementById(s);if(el)el.style.display='none';});
+  const el=document.getElementById(id);
+  if(el) el.style.display='';
+  window.scrollTo({top:0,behavior:'smooth'});
   document.querySelectorAll('.nav-link').forEach(b=>b.classList.remove('active'));
-  btn.classList.add('active');
+  if(btn) btn.classList.add('active');
+  // Lazy-init heatmap when first shown
+  if(id==='heatSection'){
+    if(!leafletMapInst) renderHeatmap();
+    else setTimeout(()=>{try{leafletMapInst.invalidateSize();}catch{}},80);
+  }
+  // Resize charts after section becomes visible
+  setTimeout(()=>{Object.values(charts).forEach(c=>{try{if(c&&c.resize)c.resize();}catch{}});},80);
 }
 
 function renderAll() {
+  // Show all sections temporarily so charts can measure their containers
+  _ALL_SECTIONS.forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='';});
+
   renderStats();
   renderCycling();
   renderTrends();
   renderActivities();
   renderCalendar();
   renderEddington();
-  ['statRow','cyclingSection','trendsSection','actSection','calSection','eddySection']
-    .forEach(id => document.getElementById(id).style.display='');
   renderMonthly();
   renderBestEfforts();
   renderGear();
-  renderHeatmap();
+  // heatmap is lazy-loaded when user navigates to heatSection
   renderMilestones();
   renderRewind();
   renderChallenges();
-  ['monthlySection','bestSection','gearSection','heatSection',
-   'segmentsSection','milestonesSection','rewindSection','challengesSection','photosSection']
-    .forEach(id => document.getElementById(id).style.display='');
   renderSegments();
   renderPhotos();
+
   document.getElementById('shareBtn').style.display = '';
   document.getElementById('logoutBtn').style.display = '';
   const nl = document.getElementById('navLinks');
   nl.style.opacity = '1';
   nl.style.pointerEvents = '';
+  const sn = document.getElementById('sidebarNav');
+  if(sn){sn.style.opacity='1';sn.style.pointerEvents='';}
+
+  // Navigate to Overview page by default
+  const firstLink = document.querySelector('#sidebarNav .nav-link');
+  navScrollTo('statRow', firstLink);
 }
 
 /* ── STATS ── */
@@ -1034,17 +1152,24 @@ let checkedStats = new Set(['distance','moving_time','average_speed','max_speed'
 let activeScheme = 'transp';
 let activeLayout = 'strip';
 let customBg = '#ffffff', customAccent = '#FC4C02', customText = '#111111', useCustom = false;
-let hideTitle = false, hideDate = false;
+let hideTitle = false, hideDate = false, hideRoute = false;
+let storyBgImage = null; // uploaded background image
 
 const SCHEMES = {
-  transp: { card:'transparent', text:'#ffffff', muted:'rgba(255,255,255,0.55)', icon:'rgba(255,255,255,0.75)', div:'rgba(255,255,255,0.15)', accent:'#FC4C02', bg:'transparent' },
-  white:  { card:'rgba(255,255,255,0.97)', text:'#111',    muted:'#999',   icon:'#555',    div:'#ebebeb', accent:'#FC4C02', bg:'transparent' },
-  dark:   { card:'rgba(18,18,18,0.97)',    text:'#f0f0f0', muted:'#555',   icon:'#aaa',    div:'#282828', accent:'#FC4C02', bg:'transparent' },
-  orange: { card:'rgba(252,76,2,0.97)',    text:'#fff',    muted:'rgba(255,255,255,.6)', icon:'#fff', div:'rgba(255,255,255,.15)', accent:'#fff', bg:'transparent' },
-  black:  { card:'rgba(5,5,5,0.97)',       text:'#fff',    muted:'#444',   icon:'#777',    div:'#1a1a1a', accent:'#FC4C02', bg:'transparent' },
-  night:  { card:'rgba(10,12,28,0.97)',    text:'#dde2ff', muted:'#4a5580',icon:'#6677bb', div:'#181d3a', accent:'#7c8fff', bg:'transparent' },
-  forest: { card:'rgba(10,22,10,0.97)',    text:'#cce8cc', muted:'#4a6a4a',icon:'#5a8a5a', div:'#162a16', accent:'#5aaa5a', bg:'transparent' },
-  slate:  { card:'rgba(14,20,32,0.97)',    text:'#dce8ff', muted:'#4a5a7a',icon:'#6070a0', div:'#1a2438', accent:'#64a0ff', bg:'transparent' },
+  transp:   { card:'transparent', text:'#ffffff', muted:'rgba(255,255,255,0.55)', icon:'rgba(255,255,255,0.75)', div:'rgba(255,255,255,0.15)', accent:'#FC4C02', bg:'transparent' },
+  white:    { card:'rgba(255,255,255,0.97)', text:'#111',    muted:'#999',   icon:'#555',    div:'#ebebeb', accent:'#FC4C02', bg:'transparent' },
+  dark:     { card:'rgba(18,18,18,0.97)',    text:'#f0f0f0', muted:'#555',   icon:'#aaa',    div:'#282828', accent:'#FC4C02', bg:'transparent' },
+  orange:   { card:'rgba(252,76,2,0.97)',    text:'#fff',    muted:'rgba(255,255,255,.6)', icon:'#fff', div:'rgba(255,255,255,.15)', accent:'#fff', bg:'transparent' },
+  black:    { card:'rgba(5,5,5,0.97)',       text:'#fff',    muted:'#444',   icon:'#777',    div:'#1a1a1a', accent:'#FC4C02', bg:'transparent' },
+  night:    { card:'rgba(10,12,28,0.97)',    text:'#dde2ff', muted:'#4a5580',icon:'#6677bb', div:'#181d3a', accent:'#7c8fff', bg:'transparent' },
+  forest:   { card:'rgba(10,22,10,0.97)',    text:'#cce8cc', muted:'#4a6a4a',icon:'#5a8a5a', div:'#162a16', accent:'#5aaa5a', bg:'transparent' },
+  slate:    { card:'rgba(14,20,32,0.97)',    text:'#dce8ff', muted:'#4a5a7a',icon:'#6070a0', div:'#1a2438', accent:'#64a0ff', bg:'transparent' },
+  gold:     { card:'linear-gradient(160deg,#1a1200,#3d2e00)', text:'#ffe87a', muted:'rgba(255,220,80,0.6)', icon:'#ffd700', div:'rgba(255,215,0,0.15)', accent:'#ffd700', bg:'linear-gradient(160deg,#1a1200,#3d2e00)' },
+  silver:   { card:'linear-gradient(160deg,#141414,#2a2a2a)', text:'#e8e8f0', muted:'rgba(200,200,220,0.6)', icon:'#c0c0d8', div:'rgba(180,180,200,0.15)', accent:'#c0c0c0', bg:'linear-gradient(160deg,#141414,#2a2a2a)' },
+  bronze:   { card:'linear-gradient(160deg,#1e0d00,#3a1a00)', text:'#f0c070', muted:'rgba(200,140,60,0.65)', icon:'#cd7f32', div:'rgba(205,127,50,0.15)', accent:'#cd7f32', bg:'linear-gradient(160deg,#1e0d00,#3a1a00)' },
+  rosegold: { card:'linear-gradient(160deg,#1e0e10,#3a1820)', text:'#ffd4d8', muted:'rgba(255,180,185,0.6)', icon:'#f4a7b0', div:'rgba(244,167,176,0.15)', accent:'#e8818a', bg:'linear-gradient(160deg,#1e0e10,#3a1820)' },
+  emerald:  { card:'linear-gradient(160deg,#001a0d,#003320)', text:'#a0ffcc', muted:'rgba(80,200,130,0.65)', icon:'#00a86b', div:'rgba(0,168,107,0.15)', accent:'#00cc80', bg:'linear-gradient(160deg,#001a0d,#003320)' },
+  sapphire: { card:'linear-gradient(160deg,#000d2e,#001a5c)', text:'#a0c4ff', muted:'rgba(80,140,255,0.65)', icon:'#4080ff', div:'rgba(64,128,255,0.15)', accent:'#4096ff', bg:'linear-gradient(160deg,#000d2e,#001a5c)' },
 };
 
 /* ═══════════════════════════════════════════
@@ -1065,6 +1190,7 @@ function decodePolyline(enc) {
 }
 
 function drawRoute(ctx, pts, x, y, w, h, color, lw) {
+  if(hideRoute) return;
   if(!pts||pts.length<2) return;
   const lats=pts.map(p=>p[0]),lngs=pts.map(p=>p[1]);
   const minLat=Math.min(...lats),maxLat=Math.max(...lats);
@@ -1187,7 +1313,16 @@ function drawLayout(canvas,act,selected,sc,layout){
   const polyline=act.map&&act.map.summary_polyline?decodePolyline(act.map.summary_polyline):null;
 
   // background
-  if(sc.bg&&sc.bg!=='transparent'){ctx.fillStyle=sc.bg;ctx.fillRect(0,0,W,H);}
+  if(storyBgImage&&canvas.id==='storyCanvas'){
+    ctx.drawImage(storyBgImage,0,0,W,H);
+    ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,W,H);
+  } else if(sc.bg&&sc.bg!=='transparent'){
+    if(sc.bg.startsWith('linear-gradient')){
+      const m=sc.bg.match(/linear-gradient\([^,]+,\s*([^,]+),\s*([^)]+)\)/);
+      if(m){const g=ctx.createLinearGradient(0,0,W*0.6,H);g.addColorStop(0,m[1].trim());g.addColorStop(1,m[2].trim());ctx.fillStyle=g;}
+      else{ctx.fillStyle='#111';} ctx.fillRect(0,0,W,H);
+    } else {ctx.fillStyle=sc.bg;ctx.fillRect(0,0,W,H);}
+  }
 
   // helpers
   const F=(sz,wt)=>`${wt||400} ${Math.round(sz*S)}px -apple-system,sans-serif`;
@@ -1987,6 +2122,33 @@ function openStoryModal(){
   chkTitle.addEventListener('change',()=>{hideTitle=chkTitle.checked;document.getElementById('lbl-hideTitle').style.borderColor=hideTitle?'var(--orange)':'var(--border)';drawStoryCanvas();});
   chkDate.addEventListener('change',()=>{hideDate=chkDate.checked;document.getElementById('lbl-hideDate').style.borderColor=hideDate?'var(--orange)':'var(--border)';drawStoryCanvas();});
 
+  const chkRoute=document.getElementById('chk-hideRoute');
+  if(chkRoute){
+    chkRoute.checked=hideRoute;
+    chkRoute.addEventListener('change',()=>{hideRoute=chkRoute.checked;document.getElementById('lbl-hideRoute').style.borderColor=hideRoute?'var(--orange)':'var(--border)';drawStoryCanvas();});
+  }
+
+  const bgInput=document.getElementById('bgImageInput');
+  const clearBg=document.getElementById('clearBgBtn');
+  const bgName=document.getElementById('bgImageName');
+  if(bgInput){
+    bgInput.addEventListener('change',e=>{
+      const file=e.target.files[0];
+      if(!file) return;
+      const reader=new FileReader();
+      reader.onload=ev=>{
+        const img=new Image();
+        img.onload=()=>{storyBgImage=img;clearBg.style.display='';bgName.textContent=file.name;drawStoryCanvas();};
+        img.src=ev.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  if(clearBg){
+    clearBg.style.display=storyBgImage?'':'none';
+    clearBg.addEventListener('click',()=>{storyBgImage=null;clearBg.style.display='none';bgName.textContent='';if(bgInput)bgInput.value='';drawStoryCanvas();});
+  }
+
   document.getElementById('storyModal').classList.add('open');
   setTimeout(drawStoryCanvas,50);
 }
@@ -2396,38 +2558,53 @@ async function renderChallenges(){
   const longestRide=rides.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
   const longestRun=runs.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
 
+  // Strava CDN trophy image IDs for each badge type (with fallback)
+  const BADGE_IMGS={
+    'KOM':'5721','ACH':'6174','PR':'4992','KUDOS':'7823',
+    'CENTURY':'5891','EVEREST':'4501','HALF':'7342','DIST':'8763'
+  };
+  function trophyImg(key,color,fallbackEmoji){
+    const id=BADGE_IMGS[key];
+    return `<img class="ach-badge-img" src="https://dgalywyr863hv.cloudfront.net/challenges/${id}/${id}-logo-100.png"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex';"
+      style="border:2px solid ${color}33;">
+    <div class="ach-badge-img-fallback" style="background:${color}15;display:none;">${fallbackEmoji}</div>`;
+  }
+
   const badges=[
-    {svg:'🥇',name:'KOM / QOM / CR',val:komList.length,unit:'segments',color:'#ffd700',unlocked:komList.length>0},
-    {svg:'🏆',name:'Total Achievements',val:totalAch.toLocaleString(),unit:'on Strava',color:'#ffd700',unlocked:totalAch>0},
-    {svg:'⚡',name:'Personal Records',val:totalPR.toLocaleString(),unit:'PRs logged',color:'#fc4c02',unlocked:totalPR>0},
-    {svg:'👍',name:'Kudos Received',val:totalKudos.toLocaleString(),unit:'kudos',color:'#fc4c02',unlocked:totalKudos>0},
-    {svg:'🌍',name:'Century Rider',val:(longestRide).toFixed(1),unit:'km best',color:'#4da8ff',unlocked:longestRide>=100},
-    {svg:'🏔️',name:'Everest Climber',val:Math.round(totalElev).toLocaleString(),unit:'m total',color:'#4da8ff',unlocked:totalElev>=8848},
-    {svg:'🏃',name:'Half Marathoner',val:(longestRun).toFixed(1),unit:'km best',color:'#00cc88',unlocked:longestRun>=21.1},
-    {svg:'🚴',name:'1,000 km Club',val:Math.round(totalRideDist).toLocaleString(),unit:'km ridden',color:'#00cc88',unlocked:totalRideDist>=1000},
+    {key:'KOM',  emoji:'👑',name:'KOM / QOM / CR',val:komList.length,unit:'segments',color:'#ffd700',unlocked:komList.length>0},
+    {key:'ACH',  emoji:'🏆',name:'Total Achievements',val:totalAch.toLocaleString(),unit:'on Strava',color:'#ffd700',unlocked:totalAch>0},
+    {key:'PR',   emoji:'⚡',name:'Personal Records',val:totalPR.toLocaleString(),unit:'PRs logged',color:'#fc4c02',unlocked:totalPR>0},
+    {key:'KUDOS',emoji:'👍',name:'Kudos Received',val:totalKudos.toLocaleString(),unit:'kudos',color:'#fc4c02',unlocked:totalKudos>0},
+    {key:'CENTURY',emoji:'🌍',name:'Century Rider',val:(longestRide).toFixed(1),unit:'km best',color:'#4da8ff',unlocked:longestRide>=100},
+    {key:'EVEREST',emoji:'🏔️',name:'Everest Climber',val:Math.round(totalElev).toLocaleString(),unit:'m total',color:'#4da8ff',unlocked:totalElev>=8848},
+    {key:'HALF', emoji:'🏃',name:'Half Marathoner',val:(longestRun).toFixed(1),unit:'km best',color:'#00cc88',unlocked:longestRun>=21.1},
+    {key:'DIST', emoji:'🚴',name:'1,000 km Club',val:Math.round(totalRideDist).toLocaleString(),unit:'km ridden',color:'#00cc88',unlocked:totalRideDist>=1000},
   ];
 
-  let html=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px;margin-bottom:28px">`;
+  let html=`<div class="ach-grid">`;
   html+=badges.map(b=>`
-    <div style="background:var(--surface);border:1px solid ${b.unlocked?b.color+'55':'var(--border)'};border-radius:12px;padding:18px 16px;text-align:center;opacity:${b.unlocked?1:0.4};position:relative;overflow:hidden;">
-      ${b.unlocked?`<div style="position:absolute;top:0;left:0;right:0;height:3px;background:${b.color};border-radius:3px 3px 0 0"></div>`:''}
-      <div style="font-size:34px;margin-bottom:8px">${b.unlocked?b.svg:'🔒'}</div>
-      <div style="font-size:22px;font-weight:800;color:${b.unlocked?b.color:'var(--muted)'};line-height:1">${b.val}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:2px">${b.unit}</div>
-      <div style="font-size:11px;font-weight:700;color:${b.unlocked?'var(--text)':'var(--muted)'};margin-top:8px">${b.name}</div>
+    <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
+      ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
+      ${trophyImg(b.key,b.color,b.emoji)}
+      <div class="ach-badge-val" style="color:${b.unlocked?b.color:'var(--muted)'}">${b.val}</div>
+      <div class="ach-badge-unit">${b.unit}</div>
+      <div class="ach-badge-name" style="color:${b.unlocked?'var(--text)':'var(--muted)'}">${b.name}</div>
     </div>`).join('');
   html+='</div>';
 
   if(komList.length){
     html+=`<div class="section-title" style="font-size:11px;margin-bottom:12px">KOM / QOM / CR Segments (${komList.length})</div>`;
-    html+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">`;
+    html+=`<div class="kom-list">`;
     html+=komList.slice(0,30).map(e=>{
       const seg=e.segment||e;
       const dist=seg.distance?(seg.distance/1000).toFixed(2)+' km':'—';
       const grade=seg.average_grade!=null?seg.average_grade.toFixed(1)+'%':'—';
       const t=fmtT(e.elapsed_time||0);
-      return `<div style="background:var(--surface);border:1px solid #ffd70044;border-radius:8px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
-        <div style="width:36px;height:36px;border-radius:50%;background:#ffd70022;border:2px solid #ffd700;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0">👑</div>
+      return `<div class="kom-item">
+        <div class="kom-crown">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffd700"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3h10v2H7v-2z"/></svg>
+        </div>
         <div style="min-width:0">
           <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${seg.name||'Segment'}</div>
           <div style="font-size:11px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ${t}</div>
