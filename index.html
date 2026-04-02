@@ -1314,7 +1314,12 @@ function drawLayout(canvas,act,selected,sc,layout){
 
   // background
   if(storyBgImage&&canvas.id==='storyCanvas'){
-    ctx.drawImage(storyBgImage,0,0,W,H);
+    // draw image with cover behaviour (maintain proportion, crop to fill)
+    const iw=storyBgImage.naturalWidth,ih=storyBgImage.naturalHeight;
+    const scale=Math.max(W/iw,H/ih);
+    const sw=W/scale,sh=H/scale;
+    const sx=(iw-sw)/2,sy=(ih-sh)/2;
+    ctx.drawImage(storyBgImage,sx,sy,sw,sh,0,0,W,H);
     ctx.fillStyle='rgba(0,0,0,0.45)';ctx.fillRect(0,0,W,H);
   } else if(sc.bg&&sc.bg!=='transparent'){
     if(sc.bg.startsWith('linear-gradient')){
