@@ -216,7 +216,6 @@ nav {
   bottom: 0;
   width: var(--sidebar-w);
   background: var(--surface);
-  border-right: 1px solid var(--border);
   overflow-y: auto;
   overflow-x: hidden;
   z-index: 50;
