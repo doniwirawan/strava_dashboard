@@ -125,11 +125,12 @@ document.getElementById('demoBtn').addEventListener('click', ()=>{
 
 /* ── INIT ── */
 if (!CONFIG.refreshToken) {
-  // Not connected yet — show connect button
-  const SCOPE = 'read,activity:read_all,profile:read_all';
+  showReconnect();
+  // Change status text for first-time users (not "session expired")
+  const SCOPE    = 'read,activity:read_all,profile:read_all';
   const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
-  const authUrl = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
-  setStatus('Not connected. <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
+  const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
+  setStatus('Not connected — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Connect with Strava →</a>');
   document.getElementById('mainBtn').textContent = 'Connect';
   document.getElementById('mainBtn').onclick = () => { window.location.href = authUrl; };
 } else {

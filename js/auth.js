@@ -1,11 +1,44 @@
 /* ── AUTH ── */
+
+function isTokenExpired() {
+  const exp = parseInt(localStorage.getItem('strava_expires_at') || '0', 10);
+  return Date.now() / 1000 >= exp - 60; // treat as expired 60s early
+}
+
+function showReconnect() {
+  const SCOPE    = 'read,activity:read_all,profile:read_all';
+  const REDIRECT = encodeURIComponent(window.location.origin + '/callback');
+  const authUrl  = `https://www.strava.com/oauth/authorize?client_id=${CONFIG.clientId}&response_type=code&redirect_uri=${REDIRECT}&approval_prompt=force&scope=${SCOPE}`;
+  setStatus('Session expired — <a href="' + authUrl + '" style="color:var(--orange);font-weight:700">Reconnect with Strava →</a>');
+  const btn = document.getElementById('mainBtn');
+  btn.textContent = 'Reconnect';
+  btn.disabled = false;
+  btn.onclick = () => { window.location.href = authUrl; };
+}
+
 async function doRefresh() {
   const r = await fetch('https://www.strava.com/oauth/token', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ client_id:CONFIG.clientId, client_secret:CONFIG.clientSecret,
-                           refresh_token:CONFIG.refreshToken, grant_type:'refresh_token' })
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      client_id:     CONFIG.clientId,
+      client_secret: CONFIG.clientSecret,
+      refresh_token: CONFIG.refreshToken,
+      grant_type:    'refresh_token'
+    })
   });
-  if (!r.ok) throw new Error('Token refresh failed ('+r.status+')');
+  if (r.status === 400 || r.status === 401) {
+    // Token is invalid/revoked — clear storage and prompt re-auth
+    localStorage.removeItem('strava_access_token');
+    localStorage.removeItem('strava_refresh_token');
+    localStorage.removeItem('strava_expires_at');
+    CONFIG.accessToken = '';
+    CONFIG.refreshToken = '';
+    const err = new Error('SESSION_EXPIRED');
+    err.sessionExpired = true;
+    throw err;
+  }
+  if (!r.ok) throw new Error('Token refresh failed (' + r.status + ')');
   const d = await r.json();
   CONFIG.accessToken  = d.access_token;
   CONFIG.refreshToken = d.refresh_token;
@@ -14,12 +47,12 @@ async function doRefresh() {
   localStorage.setItem('strava_expires_at',    d.expires_at);
 }
 
-async function api(ep, retry=false) {
-  const r = await fetch('https://www.strava.com/api/v3'+ep, {
-    headers: { Authorization:'Bearer '+CONFIG.accessToken }
+async function api(ep, retry = false) {
+  const r = await fetch('https://www.strava.com/api/v3' + ep, {
+    headers: { Authorization: 'Bearer ' + CONFIG.accessToken }
   });
-  if (r.status===401 && !retry) { await doRefresh(); return api(ep,true); }
-  if (!r.ok) throw new Error('API '+r.status+' — '+ep);
+  if (r.status === 401 && !retry) { await doRefresh(); return api(ep, true); }
+  if (!r.ok) throw new Error('API ' + r.status + ' — ' + ep);
   return r.json();
 }
 
@@ -30,36 +63,41 @@ async function loadData(forceRefresh = false) {
   try {
     // Try Supabase cache first (unless forced refresh)
     if (!forceRefresh) {
-      setStatus('Checking cache…','loading');
+      setStatus('Checking cache…', 'loading');
       const cached = await cacheLoad();
       if (cached && cached.length) {
         acts = cached;
         renderAll();
         setStatus(`✓ ${acts.length} activities (cached) — <a href="#" onclick="loadData(true);return false;" style="color:var(--orange);font-weight:700">Refresh from Strava</a>`, 'success');
         btn.textContent = 'Refresh'; btn.disabled = false;
-        // Still refresh athlete profile from API (and re-render gear which needs athlete.bikes)
-        try { await doRefresh(); renderAthlete(await api('/athlete')); renderGear(); } catch {}
+        // Silently refresh athlete profile; ignore token errors against cached data
+        try {
+          if (isTokenExpired()) await doRefresh();
+          renderAthlete(await api('/athlete'));
+          renderGear();
+        } catch {}
         return;
       }
     }
 
-    setStatus('Refreshing token…','loading');
-    await doRefresh();
-    setStatus('Loading profile…','loading');
+    setStatus('Refreshing token…', 'loading');
+    if (isTokenExpired()) await doRefresh();
+    setStatus('Loading profile…', 'loading');
     const athlete = await api('/athlete');
     renderAthlete(athlete);
-    setStatus('Fetching activities…','loading');
-    const [p1,p2] = await Promise.all([
+    setStatus('Fetching activities…', 'loading');
+    const [p1, p2] = await Promise.all([
       api('/athlete/activities?per_page=100&page=1'),
       api('/athlete/activities?per_page=100&page=2')
     ]);
-    acts = [...p1,...p2];
+    acts = [...p1, ...p2];
     renderAll();
     cacheSave(acts, athlete.id);
     setStatus(`✓ ${acts.length} activities loaded`, 'success');
     btn.textContent = 'Refresh'; btn.disabled = false;
-  } catch(e) {
-    setStatus('Error: '+e.message+' — use Demo or get a new token.','error');
+  } catch (e) {
+    if (e.sessionExpired) { showReconnect(); return; }
+    setStatus('Error: ' + e.message, 'error');
     btn.textContent = 'Retry'; btn.disabled = false;
   }
 }
