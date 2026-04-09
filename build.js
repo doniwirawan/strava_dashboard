@@ -35,4 +35,16 @@ fs.writeFileSync(path.join(__dirname, 'dist', 'callback.html'), injectCallbackHt
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(__dirname, 'dist', f));
 });
 
+// copy css/ and js/ folders
+function copyDir(src, dest) {
+  fs.mkdirSync(dest, { recursive: true });
+  fs.readdirSync(src).forEach(file => {
+    fs.copyFileSync(path.join(src, file), path.join(dest, file));
+  });
+}
+['css', 'js'].forEach(dir => {
+  const src = path.join(__dirname, dir);
+  if (fs.existsSync(src)) copyDir(src, path.join(__dirname, 'dist', dir));
+});
+
 console.log('Build complete → dist/');
