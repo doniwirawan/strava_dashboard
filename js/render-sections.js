@@ -366,24 +366,67 @@ async function renderSegments(){
   try{
     const segs=await api('/segments/starred?per_page=50');
     if(!segs||!segs.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No starred segments.</p>';return;}
+
     el.innerHTML=segs.map(s=>{
-      const dist=(s.distance/1000).toFixed(1);
-      const grade=s.average_grade!=null?s.average_grade.toFixed(1)+'%':'—';
-      const climb=s.total_elevation_gain!=null?Math.round(s.total_elevation_gain)+'m':'—';
-      const pr=s.athlete_pr_effort;
-      const prTime=pr?fmtT(pr.elapsed_time):'—';
-      const kom=s.xoms&&s.xoms.kom?s.xoms.kom:'—';
-      return `<div class="card" style="padding:0;overflow:hidden;">
-        <div id="segmap-${s.id}" style="height:160px;background:var(--surface2);"></div>
-        <div style="padding:14px 16px;">
-          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:3px;line-height:1.3">${s.name}</div>
-          <div style="font-size:11px;color:var(--muted);margin-bottom:10px">${[s.city,s.state,s.country].filter(Boolean).join(', ')||''}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Distance</div><div style="font-size:15px;font-weight:700;color:var(--text)">${dist} km</div></div>
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Avg Grade</div><div style="font-size:15px;font-weight:700;color:var(--orange)">${grade}</div></div>
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Elevation</div><div style="font-size:15px;font-weight:700;color:var(--text)">${climb}</div></div>
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">Your PR</div><div style="font-size:15px;font-weight:700;color:var(--text)">${prTime}</div></div>
-            <div style="grid-column:span 2"><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em">KOM/QOM</div><div style="font-size:13px;font-weight:600;color:gold">${kom}</div></div>
+      const dist      = (s.distance/1000).toFixed(2);
+      const gradeNum  = s.average_grade!=null ? parseFloat(s.average_grade) : null;
+      const gradeStr  = gradeNum!=null ? gradeNum.toFixed(1)+'%' : '—';
+      const climb     = s.total_elevation_gain!=null ? Math.round(s.total_elevation_gain) : null;
+      const pr        = s.athlete_pr_effort;
+      const prTime    = pr ? fmtT(pr.elapsed_time) : null;
+      const prSpeed   = pr && s.distance && pr.elapsed_time ? ((s.distance/pr.elapsed_time)*3.6).toFixed(1) : null;
+      const kom       = s.xoms&&s.xoms.kom ? s.xoms.kom : null;
+      const effortCnt = s.effort_count ? s.effort_count.toLocaleString() : null;
+      const location  = [s.city,s.state,s.country].filter(Boolean).join(', ');
+      const isKom     = s.athlete_segment_stats&&s.athlete_segment_stats.pr_rank===1;
+
+      // grade colour: green flat, yellow moderate, orange steep, red brutal
+      const gradeColor = gradeNum==null ? 'var(--muted)'
+        : gradeNum < 2  ? '#4ade80'
+        : gradeNum < 5  ? '#facc15'
+        : gradeNum < 8  ? '#fb923c'
+        : '#f87171';
+
+      // grade bar width capped at 100%
+      const gradeBarW = gradeNum!=null ? Math.min(Math.abs(gradeNum)/15*100, 100).toFixed(1) : 0;
+
+      return `
+      <div class="seg-card" id="segcard-${s.id}">
+        <div class="seg-map" id="segmap-${s.id}"></div>
+        <div class="seg-body">
+          <div class="seg-header">
+            <div class="seg-title-row">
+              <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
+              ${isKom ? '<span class="seg-kom-badge">👑 KOM</span>' : ''}
+            </div>
+            ${location ? `<div class="seg-location">${location}</div>` : ''}
+          </div>
+
+          <div class="seg-stats">
+            <div class="seg-stat">
+              <span class="seg-stat-lbl">Distance</span>
+              <span class="seg-stat-val">${dist} <span class="seg-stat-unit">km</span></span>
+            </div>
+            <div class="seg-stat">
+              <span class="seg-stat-lbl">Elevation</span>
+              <span class="seg-stat-val">${climb!=null ? climb+'<span class="seg-stat-unit"> m</span>' : '—'}</span>
+            </div>
+            <div class="seg-stat">
+              <span class="seg-stat-lbl">Your PR</span>
+              <span class="seg-stat-val ${prTime ? 'seg-pr' : ''}">${prTime||'—'}${prSpeed ? `<span class="seg-stat-unit"> · ${prSpeed} km/h</span>` : ''}</span>
+            </div>
+            <div class="seg-stat">
+              <span class="seg-stat-lbl">KOM / QOM</span>
+              <span class="seg-stat-val" style="color:#ffd700">${kom||'—'}</span>
+            </div>
+          </div>
+
+          <div class="seg-grade-row">
+            <div class="seg-grade-bar-track">
+              <div class="seg-grade-bar-fill" style="width:${gradeBarW}%;background:${gradeColor}"></div>
+            </div>
+            <span class="seg-grade-label" style="color:${gradeColor}">${gradeStr}</span>
+            ${effortCnt ? `<span class="seg-efforts">${effortCnt} efforts</span>` : ''}
           </div>
         </div>
       </div>`;
@@ -398,17 +441,14 @@ async function renderSegments(){
       let coords=[];
       if(poly) try{coords=decodePolyline(poly);}catch{}
       if(!coords.length&&s.start_latlng&&s.end_latlng) coords=[s.start_latlng,s.end_latlng];
-      if(!coords.length){
-        mapEl.style.cssText='height:0;';
-        return;
-      }
+      if(!coords.length){ mapEl.style.display='none'; return; }
       try{
-        const m=L.map(mapEl,{zoomControl:false,dragging:true,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:true,attributionControl:false});
+        const m=L.map(mapEl,{zoomControl:false,dragging:false,scrollWheelZoom:false,doubleClickZoom:false,touchZoom:false,attributionControl:false});
         L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:19,subdomains:'abcd'}).addTo(m);
-        const line=L.polyline(coords,{color:'#fc4c02',weight:4,opacity:.9}).addTo(m);
-        L.circleMarker(coords[0],{radius:6,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
-        L.circleMarker(coords[coords.length-1],{radius:6,color:'#fc4c02',fillColor:'#fc4c02',fillOpacity:1,weight:0}).addTo(m);
-        m.fitBounds(line.getBounds(),{padding:[14,14]});
+        const line=L.polyline(coords,{color:'#FC4C02',weight:3,opacity:.95}).addTo(m);
+        L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
+        L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
+        m.fitBounds(line.getBounds(),{padding:[16,16]});
       }catch{}
     });
   }catch(e){
