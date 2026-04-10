@@ -1,0 +1,118 @@
+/* ══════════════════════════════════════════
+   COMPONENTS — activity list, calendar, bubble
+══════════════════════════════════════════ */
+
+/* Activity list */
+.act-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  flex: 1;
+  max-height: 420px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.act-list::-webkit-scrollbar { width: 3px; }
+.act-list::-webkit-scrollbar-track { background: transparent; }
+.act-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+.act-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  background: var(--surface2);
+  border-radius: var(--radius-sm);
+  gap: 10px;
+  border-left: 3px solid transparent;
+  transition: border-color .15s, background .15s;
+}
+
+.act-row:hover { border-left-color: var(--orange); background: var(--surface3); }
+
+.act-name {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+
+.act-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.act-right { text-align: right; flex-shrink: 0; }
+.act-dist { font-size: 13px; font-weight: 700; }
+.act-time { font-size: 11px; color: var(--muted); }
+
+.type-pill {
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .05em;
+  background: var(--surface3);
+  color: var(--muted);
+  margin-right: 5px;
+}
+
+.type-pill.ride { color: var(--orange); background: var(--orange-dim); }
+
+/* Calendar heatmap */
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 6px;
+}
+
+.cal-month-name {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--dim);
+  margin-bottom: 5px;
+}
+
+.cal-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-cell { aspect-ratio: 1; border-radius: 2px; background: var(--surface2); }
+.cal-cell.l1 { background: rgba(252, 76, 2, .18); }
+.cal-cell.l2 { background: rgba(252, 76, 2, .42); }
+.cal-cell.l3 { background: rgba(252, 76, 2, .68); }
+.cal-cell.l4 { background: #FC4C02; }
+
+/* Bubble chart */
+#bubbleWrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 8px 0;
+  min-height: 160px;
+}
+
+.bubble {
+  border-radius: 50%;
+  background: var(--orange-dim);
+  border: 1px solid var(--orange-mid);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  transition: background .2s, transform .15s;
+  cursor: default;
+}
+
+.bubble:hover { background: rgba(252, 76, 2, .25); transform: scale(1.06); }
+
+.bubble span {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--orange);
+  line-height: 1.2;
+  text-align: center;
+  padding: 2px;
+}

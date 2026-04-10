@@ -1,0 +1,93 @@
+/* ══════════════════════════════════════════
+   LAYOUT — main, section titles, status bar
+══════════════════════════════════════════ */
+
+main {
+  padding: 24px 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+.section-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 14px;
+  margin-top: 32px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title:first-child { margin-top: 0; }
+
+.section-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+#statusBar {
+  font-size: 13px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 18px;
+  margin-bottom: 24px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+
+#statusBar.error {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, .2);
+  background: rgba(248, 113, 113, .04);
+}
+
+#statusBar.success {
+  color: #4ade80;
+  border-color: rgba(74, 222, 128, .18);
+  background: rgba(74, 222, 128, .04);
+}
+
+.spin {
+  width: 13px;
+  height: 13px;
+  border: 2px solid var(--border);
+  border-top-color: var(--orange);
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Grid helpers */
+.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.g13 { display: grid; grid-template-columns: 1fr 3fr; gap: 12px; }
+.span2 { grid-column: span 2; }
+
+/* Year pill */
+.year-btn {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+  border-radius: 20px;
+  padding: 4px 14px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+}
+
+.year-btn:hover { border-color: var(--border-hover); color: var(--text); }
+.year-btn.active { background: var(--orange-dim); border-color: var(--orange); color: var(--orange); }

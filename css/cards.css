@@ -1,0 +1,117 @@
+/* ══════════════════════════════════════════
+   CARDS — stat cards, content cards, charts
+══════════════════════════════════════════ */
+
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  transition: transform .2s ease, border-color .2s, box-shadow .2s;
+  cursor: default;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-sm);
+}
+
+.stat-card.hi {
+  border-color: rgba(252, 76, 2, .35);
+  background: linear-gradient(135deg, rgba(252, 76, 2, .06) 0%, var(--surface) 60%);
+}
+
+.stat-card.hi:hover { box-shadow: var(--shadow-orange); }
+
+.s-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 8px;
+}
+
+.s-value {
+  font-size: 26px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  line-height: 1;
+  color: var(--text);
+}
+
+.stat-card.hi .s-value { color: var(--orange); }
+
+.s-sub {
+  font-size: 11px;
+  color: var(--text-3);
+  margin-top: 4px;
+}
+
+/* Content card */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+}
+
+.card-title {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 16px;
+}
+
+.chart-wrap { position: relative; height: 210px; }
+.chart-wrap.tall { height: 270px; }
+.chart-wrap.sm { height: 160px; }
+
+/* Cycling hero */
+.cycling-hero {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.hero-box {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.hero-box.hi {
+  background: rgba(252, 76, 2, .07);
+  border-color: rgba(252, 76, 2, .25);
+}
+
+.hero-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 5px;
+}
+
+.hero-box.hi .hero-label { color: rgba(252, 76, 2, .65); }
+
+.hero-value {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -.5px;
+}
+
+.hero-box.hi .hero-value { color: var(--orange); }
+.hero-unit { font-size: 12px; font-weight: 600; opacity: .55; }

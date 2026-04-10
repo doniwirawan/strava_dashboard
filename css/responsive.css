@@ -1,0 +1,74 @@
+/* ══════════════════════════════════════════
+   RESPONSIVE — breakpoints
+══════════════════════════════════════════ */
+
+@media (max-width: 968px) {
+  .stat-row { grid-template-columns: repeat(3, 1fr); }
+  .g2, .g3, .g13 { grid-template-columns: 1fr; }
+  .cycling-hero { grid-template-columns: repeat(2, 1fr); }
+  .cal-grid { grid-template-columns: repeat(6, 1fr); }
+  .eddy-wrap { flex-wrap: wrap; }
+}
+
+@media (max-width: 768px) {
+  :root { --nav-h: 52px; }
+
+  nav { padding: 0 14px; }
+  .hamburger { display: flex; }
+  .badge span { display: none; }
+
+  .btn { padding: 6px 12px; font-size: 11px; }
+
+  #shareBtn, #logoutBtn, #demoBtn, #mainBtn, #resetBtn {
+    display: none !important;
+  }
+
+  .nav-right { gap: 5px; }
+  .sidebar { display: none; }
+  .app-layout { margin-left: 0; }
+  main { padding: 16px; }
+}
+
+@media (min-width: 769px) {
+  #badge { display: none !important; }
+  .hamburger { display: none !important; }
+}
+
+@media (max-width: 600px) {
+  main { padding: 12px; }
+  .stat-row { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .s-value { font-size: 22px; }
+  .stat-card { padding: 14px 16px; }
+  .card { padding: 14px; }
+  .cycling-hero { grid-template-columns: 1fr 1fr; }
+  .hero-value { font-size: 18px; }
+  .cal-grid { grid-template-columns: repeat(3, 1fr); }
+  .act-name { max-width: 160px; }
+  .eddy-num { font-size: 56px; }
+  .chart-wrap { height: 180px; }
+  .ach-grid { grid-template-columns: repeat(2, 1fr); }
+  .kom-list { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .modal-overlay { padding: 0; align-items: flex-end; }
+
+  .modal {
+    border-radius: 18px 18px 0 0;
+    max-height: 95vh;
+    padding: 14px 12px 20px;
+  }
+
+  .modal-body { grid-template-columns: 1fr; gap: 12px; }
+
+  .story-preview {
+    height: 55vw !important;
+    width: auto !important;
+    aspect-ratio: 9/16;
+    margin: 0 auto;
+  }
+
+  .layout-grid { grid-template-columns: repeat(5, 1fr); }
+  .color-swatch { width: 24px; height: 24px; }
+  .modal-actions { flex-direction: row; }
+}
