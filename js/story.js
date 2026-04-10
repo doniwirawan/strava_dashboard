@@ -127,20 +127,22 @@ function statVal(s,act){const v=String(s.fmt(act));const p=v.split(' ');return{n
 
 /* ── 25 LAYOUTS ── */
 const LAYOUTS=[
-  {id:'strip',   name:'Strip'},
-  {id:'grid',    name:'Grid'},
-  {id:'hero',    name:'Hero'},
-  {id:'map',     name:'Map'},
-  {id:'minimal', name:'Minimal'},
-  {id:'split',   name:'Split'},
-  {id:'stacked', name:'Stacked'},
-  {id:'cinema',  name:'Cinema'},
-  {id:'neon',    name:'Neon'},
-  {id:'sport',   name:'Sport'},
-  {id:'gradient',name:'Gradient'},
-  {id:'badge',   name:'Badge'},
-  {id:'tiles',   name:'Tiles'},
-  {id:'ink',     name:'Ink'},
+  {id:'strip',    name:'Strip'},
+  {id:'grid',     name:'Grid'},
+  {id:'hero',     name:'Hero'},
+  {id:'map',      name:'Map'},
+  {id:'minimal',  name:'Minimal'},
+  {id:'split',    name:'Split'},
+  {id:'stacked',  name:'Stacked'},
+  {id:'cinema',   name:'Cinema'},
+  {id:'neon',     name:'Neon'},
+  {id:'sport',    name:'Sport'},
+  {id:'gradient', name:'Gradient'},
+  {id:'badge',    name:'Badge'},
+  {id:'tiles',    name:'Tiles'},
+  {id:'ink',      name:'Ink'},
+  {id:'nightrun', name:'Night Run'},
+  {id:'explorer', name:'Explorer'},
 ];
 
 function drawLayout(canvas,act,selected,sc,layout){
@@ -642,6 +644,239 @@ function drawLayout(canvas,act,selected,sc,layout){
           ctx.fillText(unit,P+numW+Math.round(10*S),ry+inkRH-Math.round(20*S));
         }
       });
+      break;
+    }
+
+    /* 15. NIGHT RUN — frosted glass card, waveform charts, bar splits */
+    case 'nightrun':{
+      // ── background ──
+      if(!skipBg){
+        const g=ctx.createLinearGradient(0,0,W,H);
+        g.addColorStop(0,'#0d0d0d');g.addColorStop(1,'#1a1a2e');
+        ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+      }
+
+      // seeded waveform helper
+      function wave(wx,wy,ww,wh,seed,col,lw){
+        const pts=90,amp=wh*0.42;
+        ctx.beginPath();
+        for(let i=0;i<=pts;i++){
+          const t=i/pts;
+          const nx=wx+ww*t;
+          const ny=wy+wh/2
+            +Math.sin(t*6.3+seed)*amp*0.38
+            +Math.sin(t*14+seed*1.7)*amp*0.26
+            +Math.sin(t*28+seed*3.1)*amp*0.14
+            +Math.sin(t*52+seed*5.3)*amp*0.08;
+          i===0?ctx.moveTo(nx,ny):ctx.lineTo(nx,ny);
+        }
+        ctx.strokeStyle=col;ctx.lineWidth=lw*S;ctx.lineCap='round';ctx.lineJoin='round';ctx.stroke();
+      }
+
+      // bar chart helper (simulated splits)
+      function bars(bx,by,bw,bh,count,seed,col){
+        const gap=Math.round(6*S),bW=(bw-gap*(count-1))/count;
+        for(let i=0;i<count;i++){
+          const h2=bh*(0.4+0.5*Math.abs(Math.sin(i*1.9+seed)+(Math.cos(i*2.7+seed*0.8))*0.3));
+          const rx=bx+i*(bW+gap),ry=by+bh-h2;
+          ctx.fillStyle=col;
+          ctx.beginPath();ctx.roundRect(rx,ry,bW,h2,Math.round(3*S));ctx.fill();
+        }
+      }
+
+      const seed=(act.id||12345)%100;
+      const cx2=W/2;
+
+      // frosted card
+      const cardX=Math.round(52*S),cardW=W-cardX*2;
+      const cardY=Math.round(90*S),cardH=H-cardY*2;
+      const cr=Math.round(22*S);
+      ctx.save();
+      ctx.beginPath();ctx.roundRect(cardX,cardY,cardW,cardH,cr);ctx.clip();
+      ctx.fillStyle='rgba(245,245,245,0.94)';ctx.fillRect(cardX,cardY,cardW,cardH);
+      ctx.restore();
+
+      const cx=cardX+Math.round(28*S),cInnerW=cardW-Math.round(56*S);
+      let cy3=cardY+Math.round(36*S);
+
+      // top badge row
+      const actType=(act.type||'Run').toUpperCase();
+      const badgeW=ctx.measureText(actType).width+Math.round(32*S);
+      ctx.fillStyle='rgba(252,76,2,0.12)';
+      ctx.beginPath();ctx.roundRect(cx,cy3,Math.round(100*S),Math.round(26*S),Math.round(6*S));ctx.fill();
+      ctx.fillStyle='#FC4C02';ctx.font=`700 ${Math.round(11*S)}px -apple-system,sans-serif`;
+      ctx.textAlign='left';ctx.letterSpacing='0.06em';
+      ctx.fillText(actType,cx+Math.round(10*S),cy3+Math.round(18*S));
+      // Strava logo mark top-right
+      const lx=cardX+cardW-Math.round(32*S),ly=cy3+Math.round(13*S);
+      ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(16*S)}px -apple-system,sans-serif`;
+      ctx.textAlign='right';ctx.letterSpacing='-1px';
+      ctx.fillText('S',lx,ly);
+      cy3+=Math.round(44*S);
+
+      // activity name
+      const nm2=act.name||'Activity';
+      let nfs=Math.round(46*S);
+      ctx.font=`900 ${nfs}px -apple-system,sans-serif`;
+      while(nfs>Math.round(22*S)&&ctx.measureText(nm2).width>cInnerW){nfs-=Math.max(1,Math.round(2*S));ctx.font=`900 ${nfs}px -apple-system,sans-serif`;}
+      ctx.fillStyle='#111';ctx.textAlign='left';ctx.letterSpacing='-1px';
+      ctx.fillText(nm2,cx,cy3);
+      cy3+=Math.round(10*S);
+
+      // location / date line
+      const loc2=[act.location_city,act.location_state,act.location_country].filter(Boolean).join(', ')
+        ||(act.start_latlng&&act.start_latlng.length?`${act.start_latlng[0].toFixed(2)}, ${act.start_latlng[1].toFixed(2)}`:'');
+      if(loc2||act.start_date){
+        ctx.fillStyle='#888';ctx.font=`400 ${Math.round(18*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';
+        ctx.fillText((loc2||(act.start_date?fmtDt(act.start_date):'')),cx,cy3+Math.round(22*S));
+        cy3+=Math.round(34*S);
+      }
+      cy3+=Math.round(10*S);
+
+      // divider
+      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.fillRect(cx,cy3,cInnerW,Math.round(1*S));
+      cy3+=Math.round(18*S);
+
+      // stat rows with waveform between each
+      const dist3=fmtD(act.distance||0);
+      const pace3=act.moving_time&&act.distance&&act.distance>0?(()=>{const s=Math.round((act.moving_time/(act.distance/1000)));return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}/km`;})():'—';
+      const elev3=Math.round(act.total_elevation_gain||0)+'m';
+      const time3=fmtT(act.moving_time||0);
+
+      const statRows=[
+        {label:'Distance',val:dist3,right:elev3,rLbl:'Elev Gain'},
+        {label:'Pace',    val:pace3,right:act.max_speed?kmh(act.max_speed)+' km/h max':'',rLbl:'Fastest'},
+        {label:'Time',    val:time3,right:'',rLbl:''},
+      ];
+      const rowH=Math.round(110*S),waveH=Math.round(38*S);
+
+      statRows.forEach((r,i)=>{
+        // label
+        ctx.fillStyle='#999';ctx.font=`600 ${Math.round(13*S)}px -apple-system,sans-serif`;
+        ctx.textAlign='left';ctx.letterSpacing='0.02em';
+        ctx.fillText(r.label.toUpperCase(),cx,cy3+Math.round(16*S));
+        if(r.rLbl){
+          ctx.textAlign='right';
+          ctx.fillText(r.rLbl.toUpperCase(),cx+cInnerW,cy3+Math.round(16*S));
+        }
+        // big value
+        let vfs2=Math.round(54*S);
+        ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;
+        while(vfs2>Math.round(22*S)&&ctx.measureText(r.val).width>cInnerW*0.55){vfs2-=Math.max(1,Math.round(2*S));ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#111';ctx.textAlign='left';ctx.letterSpacing='-1px';
+        ctx.fillText(r.val,cx,cy3+Math.round(62*S));
+        if(r.right){
+          let rfs=Math.round(22*S);
+          ctx.font=`700 ${rfs}px -apple-system,sans-serif`;
+          ctx.fillStyle='#555';ctx.textAlign='right';ctx.letterSpacing='0';
+          ctx.fillText(r.right,cx+cInnerW,cy3+Math.round(62*S));
+        }
+        cy3+=rowH;
+        // waveform after each stat (except last)
+        if(i<statRows.length-1){
+          ctx.globalAlpha=0.45;
+          wave(cx,cy3-waveH+Math.round(8*S),cInnerW,waveH,seed+i*2.7,'#FC4C02',1.5);
+          ctx.globalAlpha=1;
+          // divider
+          ctx.fillStyle='rgba(0,0,0,0.06)';ctx.fillRect(cx,cy3-Math.round(4*S),cInnerW,Math.round(1*S));
+          cy3+=Math.round(8*S);
+        }
+      });
+
+      // bar chart — simulated splits
+      cy3+=Math.round(4*S);
+      const barsH=Math.round(52*S);
+      const barsCount=Math.round((act.distance||5000)/1000);
+      bars(cx,cy3,cInnerW,barsH,Math.max(barsCount,4),seed,'rgba(252,76,2,0.35)');
+      // highlight last bar
+      const lastCount=Math.max(barsCount,4);
+      const lastW=(cInnerW-Math.round(6*S)*(lastCount-1))/lastCount;
+      const lastX=cx+(lastCount-1)*(lastW+Math.round(6*S));
+      ctx.fillStyle='#FC4C02';
+      ctx.beginPath();ctx.roundRect(lastX,cy3,lastW,barsH,Math.round(3*S));ctx.fill();
+
+      break;
+    }
+
+    /* 16. EXPLORER — full-bleed photo, route trace, top stat bar */
+    case 'explorer':{
+      // ── background ──
+      if(!skipBg){
+        const g=ctx.createLinearGradient(0,0,W*0.4,H);
+        g.addColorStop(0,'#1a2a1a');g.addColorStop(0.5,'#2a3a2a');g.addColorStop(1,'#0d1a0d');
+        ctx.fillStyle=g;ctx.fillRect(0,0,W,H);
+        // subtle texture dots
+        ctx.fillStyle='rgba(255,255,255,0.015)';
+        for(let i=0;i<200;i++){
+          const tx=(Math.sin(i*1.7)*0.5+0.5)*W,ty=(Math.sin(i*2.3+1)*0.5+0.5)*H;
+          ctx.beginPath();ctx.arc(tx,ty,Math.random()*2+0.5,0,Math.PI*2);ctx.fill();
+        }
+      } else {
+        // darken the uploaded photo more for readability
+        ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(0,0,W,H);
+      }
+
+      // ── route — drawn large across full canvas ──
+      if(polyline&&polyline.length>1){
+        // faint shadow pass
+        ctx.shadowColor='rgba(255,255,255,0.6)';ctx.shadowBlur=Math.round(18*S);
+        ctx.globalAlpha=0.18;
+        drawRoute(ctx,polyline,Math.round(60*S),Math.round(180*S),W-Math.round(120*S),H-Math.round(320*S),'#fff',Math.round(10*S));
+        ctx.globalAlpha=1;ctx.shadowBlur=0;
+        // main route
+        ctx.shadowColor='rgba(255,255,255,0.4)';ctx.shadowBlur=Math.round(12*S);
+        drawRoute(ctx,polyline,Math.round(60*S),Math.round(180*S),W-Math.round(120*S),H-Math.round(320*S),'#ffffff',Math.round(5*S));
+        ctx.shadowBlur=0;
+      }
+
+      // ── top stat pill row ──
+      const topStats=[
+        {lbl:'D+', val:Math.round(act.total_elevation_gain||0)+'m'},
+        {lbl:'Distance', val:fmtD(act.distance||0)},
+        {lbl:'Avg HR', val:act.average_heartrate?Math.round(act.average_heartrate)+'bpm':'—'},
+        {lbl:'Time', val:fmtT(act.moving_time||0)},
+      ];
+      const pillH=Math.round(72*S),pillY=Math.round(64*S);
+      // pill background
+      ctx.fillStyle='rgba(0,0,0,0.62)';
+      ctx.beginPath();ctx.roundRect(Math.round(44*S),pillY,W-Math.round(88*S),pillH,Math.round(16*S));ctx.fill();
+
+      const pW=(W-Math.round(88*S))/topStats.length;
+      topStats.forEach((st,i)=>{
+        const px=Math.round(44*S)+i*pW+pW/2;
+        if(i>0){
+          ctx.fillStyle='rgba(255,255,255,0.15)';
+          ctx.fillRect(Math.round(44*S)+i*pW,pillY+Math.round(12*S),Math.round(1*S),pillH-Math.round(24*S));
+        }
+        ctx.fillStyle='rgba(255,255,255,0.5)';ctx.font=`600 ${Math.round(12*S)}px -apple-system,sans-serif`;
+        ctx.textAlign='center';ctx.letterSpacing='0.06em';
+        ctx.fillText(st.lbl.toUpperCase(),px,pillY+Math.round(24*S));
+        ctx.fillStyle='#fff';ctx.font=`800 ${Math.round(22*S)}px -apple-system,sans-serif`;ctx.letterSpacing='-0.5px';
+        ctx.fillText(st.val,px,pillY+Math.round(52*S));
+      });
+
+      // ── bottom name band ──
+      const bandH=Math.round(130*S),bandY=H-bandH;
+      const bandGrad=ctx.createLinearGradient(0,bandY-Math.round(40*S),0,H);
+      bandGrad.addColorStop(0,'transparent');bandGrad.addColorStop(1,'rgba(0,0,0,0.88)');
+      ctx.fillStyle=bandGrad;ctx.fillRect(0,bandY-Math.round(40*S),W,bandH+Math.round(40*S));
+
+      const nm3=act.name||'Activity';
+      let nfs3=Math.round(52*S);
+      ctx.font=`900 ${nfs3}px -apple-system,sans-serif`;
+      while(nfs3>Math.round(22*S)&&ctx.measureText(nm3).width>W-Math.round(120*S)){nfs3-=Math.max(1,Math.round(2*S));ctx.font=`900 ${nfs3}px -apple-system,sans-serif`;}
+      ctx.fillStyle='#fff';ctx.textAlign='left';ctx.letterSpacing='-1px';
+      ctx.fillText(nm3,Math.round(52*S),bandY+Math.round(58*S));
+
+      if(!hideDate){
+        ctx.fillStyle='rgba(255,255,255,0.55)';ctx.font=`400 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';
+        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),Math.round(52*S),bandY+Math.round(90*S));
+      }
+
+      // Strava logo mark bottom-right
+      ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(28*S)}px -apple-system,sans-serif`;ctx.letterSpacing='-1px';ctx.textAlign='right';
+      ctx.fillText('STRAVA',W-Math.round(52*S),bandY+Math.round(90*S));
+
       break;
     }
   }
