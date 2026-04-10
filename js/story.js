@@ -17,6 +17,7 @@ const STAT_DEFS = [
 
 let checkedStats = new Set(['distance','moving_time','average_speed','max_speed','total_elevation_gain','average_heartrate']);
 let activeScheme = 'transp';
+let customAccent = null; // override accent color
 let activeLayout = 'strip';
 let hideTitle = false, hideDate = false, hideRoute = false, hideLogo = false;
 let storyBgImage = null; // uploaded background image
@@ -117,9 +118,11 @@ function drawIcon(ctx,type,cx,cy,s,col){
   ctx.restore();
 }
 
-/* ── get resolved scheme — always transparent ── */
+/* ── get resolved scheme ── */
 function getScheme(){
-  return SCHEMES.transp;
+  const s={...SCHEMES[activeScheme]||SCHEMES.transp};
+  if(customAccent){s.accent=customAccent;}
+  return s;
 }
 
 /* ── stat value helper ── */
@@ -694,10 +697,7 @@ function drawLayout(canvas,act,selected,sc,layout){
       const cardX=Math.round(52*S),cardW=W-cardX*2;
       const cardY=Math.round(90*S),cardH=H-cardY*2;
       const cr=Math.round(22*S);
-      ctx.save();
-      ctx.beginPath();ctx.roundRect(cardX,cardY,cardW,cardH,cr);ctx.clip();
-      ctx.fillStyle='rgba(12,14,28,0.88)';ctx.fillRect(cardX,cardY,cardW,cardH);
-      ctx.restore();
+      // no card fill — content draws directly on background
 
       const cx=cardX+Math.round(28*S),cInnerW=cardW-Math.round(56*S);
       let cy3=cardY+Math.round(36*S);
@@ -724,97 +724,69 @@ function drawLayout(canvas,act,selected,sc,layout){
       let nfs=Math.round(46*S);
       ctx.font=`900 ${nfs}px -apple-system,sans-serif`;
       while(nfs>Math.round(22*S)&&ctx.measureText(nm2).width>cInnerW){nfs-=Math.max(1,Math.round(2*S));ctx.font=`900 ${nfs}px -apple-system,sans-serif`;}
-      ctx.fillStyle='#f0f0ff';ctx.textAlign='left';ctx.letterSpacing='-1px';
-      ctx.fillText(nm2,cx,cy3);
-      cy3+=Math.round(10*S);
+      if(!hideTitle){
+        ctx.fillStyle='#f0f0ff';ctx.textAlign='left';ctx.letterSpacing='-1px';
+        ctx.fillText(nm2,cx,cy3);
+        cy3+=nfs+Math.round(6*S); // advance by actual font size
+      }
 
       // location / date line
-      const loc2=[act.location_city,act.location_state,act.location_country].filter(Boolean).join(', ')
-        ||(act.start_latlng&&act.start_latlng.length?`${act.start_latlng[0].toFixed(2)}, ${act.start_latlng[1].toFixed(2)}`:'');
-      if(loc2||act.start_date){
-        ctx.fillStyle='rgba(180,185,255,0.55)';ctx.font=`400 ${Math.round(18*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';
-        ctx.fillText((loc2||(act.start_date?fmtDt(act.start_date):'')),cx,cy3+Math.round(22*S));
-        cy3+=Math.round(34*S);
+      if(!hideDate){
+        const loc2=[act.location_city,act.location_state,act.location_country].filter(Boolean).join(', ')
+          ||(act.start_latlng&&act.start_latlng.length?`${act.start_latlng[0].toFixed(2)}, ${act.start_latlng[1].toFixed(2)}`:'');
+        const locStr=loc2||(act.start_date?fmtDt(act.start_date):'');
+        if(locStr){
+          ctx.fillStyle='rgba(180,185,255,0.55)';ctx.font=`400 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';ctx.textAlign='left';
+          ctx.fillText(locStr,cx,cy3+Math.round(22*S));
+          cy3+=Math.round(36*S);
+        }
       }
-      cy3+=Math.round(10*S);
+      cy3+=Math.round(16*S);
 
       // divider
       ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(cx,cy3,cInnerW,Math.round(1*S));
       cy3+=Math.round(18*S);
 
-      // stat rows with waveform between each
-      const dist3=fmtD(act.distance||0);
-      const elev3=Math.round(act.total_elevation_gain||0)+'m';
-      const time3=fmtT(act.moving_time||0);
-      const isCyc=isRide(act);
+      // stat rows — use selected stats dynamically
+      const nrStats=selected.length>0?selected:[];
+      // calculate row height so all stats + waveforms fit remaining space
+      const nrAvail=cardY+cardH-cy3-Math.round(80*S); // leave room for bars
+      const waveH=Math.round(38*S);
+      const rowH=nrStats.length>0?Math.min(Math.round(120*S),Math.floor((nrAvail-(nrStats.length-1)*waveH)/Math.max(nrStats.length,1))):Math.round(120*S);
 
-      // cycling: Speed / Power rows; running/other: Pace / HR rows
-      let statRows;
-      if(isCyc){
-        const avgSpd3=act.average_speed?kmh(act.average_speed)+' km/h':'—';
-        const maxSpd3=act.max_speed?kmh(act.max_speed)+' km/h':'';
-        const pwr3=act.average_watts?Math.round(act.average_watts)+' W':'—';
-        const maxPwr3=act.max_watts?Math.round(act.max_watts)+' W':'';
-        const cad3=act.average_cadence?Math.round(act.average_cadence)+' rpm':'';
-        statRows=[
-          {label:'Distance', val:dist3,   right:elev3,   rLbl:'Elevation'},
-          {label:'Avg Speed',val:avgSpd3, right:maxSpd3, rLbl:maxSpd3?'Max Speed':''},
-          {label:'Time',     val:time3,   right:pwr3!=='—'?pwr3:(cad3||''), rLbl:pwr3!=='—'?'Avg Power':(cad3?'Cadence':'')},
-        ];
-      } else {
-        const pace3=act.moving_time&&act.distance&&act.distance>0?(()=>{const s=Math.round((act.moving_time/(act.distance/1000)));return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}/km`;})():'—';
-        const hr3=act.average_heartrate?Math.round(act.average_heartrate)+' bpm':'';
-        statRows=[
-          {label:'Distance',val:dist3, right:elev3, rLbl:'Elev Gain'},
-          {label:'Pace',    val:pace3, right:act.max_speed?kmh(act.max_speed)+' km/h max':'', rLbl:act.max_speed?'Fastest':''},
-          {label:'Time',    val:time3, right:hr3,   rLbl:hr3?'Avg HR':''},
-        ];
-      }
-      const rowH=Math.round(110*S),waveH=Math.round(38*S);
-
-      statRows.forEach((r,i)=>{
+      nrStats.forEach((s,i)=>{
+        const{num,unit}=statVal(s,act);
         // label
         ctx.fillStyle='rgba(180,185,255,0.55)';ctx.font=`600 ${Math.round(13*S)}px -apple-system,sans-serif`;
         ctx.textAlign='left';ctx.letterSpacing='0.02em';
-        ctx.fillText(r.label.toUpperCase(),cx,cy3+Math.round(16*S));
-        if(r.rLbl){
-          ctx.textAlign='right';
-          ctx.fillText(r.rLbl.toUpperCase(),cx+cInnerW,cy3+Math.round(16*S));
-        }
-        // big value
-        let vfs2=Math.round(54*S);
+        ctx.fillText(s.label.toUpperCase(),cx,cy3+Math.round(18*S));
+        // value
+        let vfs2=Math.round(Math.min(54,rowH*0.5)*S);
         ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;
-        while(vfs2>Math.round(22*S)&&ctx.measureText(r.val).width>cInnerW*0.55){vfs2-=Math.max(1,Math.round(2*S));ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;}
+        const disp=num+(unit?' '+unit:'');
+        while(vfs2>Math.round(18*S)&&ctx.measureText(disp).width>cInnerW*0.9){vfs2-=Math.max(1,Math.round(2*S));ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;}
         ctx.fillStyle='#dde2ff';ctx.textAlign='left';ctx.letterSpacing='-1px';
-        ctx.fillText(r.val,cx,cy3+Math.round(62*S));
-        if(r.right){
-          let rfs=Math.round(22*S);
-          ctx.font=`700 ${rfs}px -apple-system,sans-serif`;
-          ctx.fillStyle='rgba(180,185,255,0.65)';ctx.textAlign='right';ctx.letterSpacing='0';
-          ctx.fillText(r.right,cx+cInnerW,cy3+Math.round(62*S));
-        }
+        ctx.fillText(disp,cx,cy3+Math.round(18*S)+vfs2+Math.round(4*S));
         cy3+=rowH;
-        // waveform after each stat (except last)
-        if(i<statRows.length-1){
-          ctx.globalAlpha=0.55;
-          wave(cx,cy3-waveH+Math.round(8*S),cInnerW,waveH,seed+i*2.7,'#7c8fff',1.5);
+        // waveform divider between stats
+        if(i<nrStats.length-1){
+          ctx.globalAlpha=0.45;
+          wave(cx,cy3-waveH+Math.round(6*S),cInnerW,waveH,seed+i*2.7,'#7c8fff',1.5);
           ctx.globalAlpha=1;
-          // divider
           ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(cx,cy3-Math.round(4*S),cInnerW,Math.round(1*S));
-          cy3+=Math.round(8*S);
         }
       });
 
-      // bar chart — simulated splits
-      cy3+=Math.round(4*S);
-      const barsH=Math.round(52*S);
+      // bar chart — simulated splits at bottom
+      cy3+=Math.round(8*S);
+      const barsH=Math.round(48*S);
       const barsCount=Math.round((act.distance||5000)/1000);
-      bars(cx,cy3,cInnerW,barsH,Math.max(barsCount,4),seed,'rgba(252,76,2,0.35)');
+      bars(cx,cy3,cInnerW,barsH,Math.max(barsCount,4),seed,'rgba(124,143,255,0.25)');
       // highlight last bar
       const lastCount=Math.max(barsCount,4);
       const lastW=(cInnerW-Math.round(6*S)*(lastCount-1))/lastCount;
       const lastX=cx+(lastCount-1)*(lastW+Math.round(6*S));
-      ctx.fillStyle='#FC4C02';
+      ctx.fillStyle='#7c8fff';
       ctx.beginPath();ctx.roundRect(lastX,cy3,lastW,barsH,Math.round(3*S));ctx.fill();
 
       break;
@@ -1020,14 +992,14 @@ function drawLayout(canvas,act,selected,sc,layout){
       }
 
       const isCycG=isRide(act);
-      // build a focused set of up to 4 key stats
       const gStats=selected.slice(0,6);
       const numS=gStats.length;
 
       // top: big donut for first stat
+      const donutR=Math.round(150*S);
+      const donutCx=W/2,donutCy=Math.round(80*S)+donutR+Math.round(20*S);
       if(numS>0){
         const s0=gStats[0];const{num:n0,unit:u0}=statVal(s0,act);
-        const donutCx=W/2,donutCy=Math.round(H*0.27),donutR=Math.round(160*S);
         // track
         ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=Math.round(22*S);ctx.lineCap='butt';
         ctx.beginPath();ctx.arc(donutCx,donutCy,donutR,0,Math.PI*2);ctx.stroke();
@@ -1047,22 +1019,27 @@ function drawLayout(canvas,act,selected,sc,layout){
         if(u0){ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=`500 ${Math.round(22*S)}px -apple-system,sans-serif`;ctx.fillText(u0,donutCx,donutCy+Math.round(64*S));}
       }
 
-      // title
+      // title — anchored below donut bottom
+      const donutBottom=donutCy+donutR+Math.round(32*S);
+      let gContentY=donutBottom+Math.round(28*S);
       if(!hideTitle){
         const nm=act.name||'Activity';
-        let nfs=Math.round(40*S);ctx.font=`700 ${nfs}px -apple-system,sans-serif`;
+        let nfs=Math.round(38*S);ctx.font=`700 ${nfs}px -apple-system,sans-serif`;
         while(nfs>16&&ctx.measureText(nm).width>W-P*2){nfs-=2;ctx.font=`700 ${nfs}px -apple-system,sans-serif`;}
         ctx.fillStyle='#fff';ctx.textAlign='center';ctx.letterSpacing='-0.5px';
-        ctx.fillText(nm,W/2,Math.round(H*0.52));
+        ctx.fillText(nm,W/2,gContentY);
+        gContentY+=nfs+Math.round(6*S);
       }
       if(!hideDate){
         ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font=`400 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';ctx.textAlign='center';
-        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),W/2,Math.round(H*0.52)+Math.round(32*S));
+        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),W/2,gContentY+Math.round(22*S));
+        gContentY+=Math.round(44*S);
       }
+      gContentY+=Math.round(16*S);
 
       // remaining stats as bar-style tiles
       const barStats=gStats.slice(1);
-      const bBaseY=Math.round(H*0.58);
+      const bBaseY=gContentY;
       const bH=Math.round(92*S),bGap=Math.round(10*S);
       const bW=W-P*2;
       barStats.forEach((s,i)=>{
@@ -1243,7 +1220,41 @@ function openStoryModal(){
     });
   });
 
-  picker.addEventListener('change',drawStoryCanvas);
+  picker.onchange=drawStoryCanvas;
+
+  // scheme picker
+  const schemeSwatches={
+    transp:'linear-gradient(135deg,#111 50%,#eee 50%)',
+    white:'#f0f0f0',dark:'#1a1a1a',orange:'#FC4C02',black:'#050505',
+    night:'#0a0c1c',forest:'#0a160a',slate:'#0e1420',
+    gold:'linear-gradient(135deg,#1a1200,#ffd700)',
+    silver:'linear-gradient(135deg,#141414,#c0c0c0)',
+    bronze:'linear-gradient(135deg,#1e0d00,#cd7f32)',
+    rosegold:'linear-gradient(135deg,#1e0e10,#e8818a)',
+    emerald:'linear-gradient(135deg,#001a0d,#00cc80)',
+    sapphire:'linear-gradient(135deg,#000d2e,#4096ff)',
+  };
+  const sp=document.getElementById('schemePicker');
+  sp.innerHTML=Object.keys(schemeSwatches).map(k=>`
+    <button data-scheme="${k}" title="${k}" style="width:28px;height:28px;border-radius:50%;background:${schemeSwatches[k]};border:2px solid ${k===activeScheme?'var(--orange)':'transparent'};cursor:pointer;outline:none;flex-shrink:0;transition:border-color .15s;"></button>
+  `).join('');
+  sp.querySelectorAll('button').forEach(btn=>{
+    btn.onclick=()=>{
+      activeScheme=btn.dataset.scheme;
+      sp.querySelectorAll('button').forEach(b=>b.style.borderColor='transparent');
+      btn.style.borderColor='var(--orange)';
+      drawStoryCanvas();
+    };
+  });
+
+  // accent color picker
+  const accentPicker=document.getElementById('accentColorPicker');
+  const accentReset=document.getElementById('accentReset');
+  if(accentPicker){
+    if(customAccent) accentPicker.value=customAccent;
+    accentPicker.oninput=()=>{customAccent=accentPicker.value;drawStoryCanvas();};
+    if(accentReset) accentReset.onclick=()=>{customAccent=null;accentPicker.value='#FC4C02';drawStoryCanvas();};
+  }
 
   // hide toggles — use onchange (not addEventListener) to prevent stacking on re-open
   const chkTitle=document.getElementById('chk-hideTitle');
