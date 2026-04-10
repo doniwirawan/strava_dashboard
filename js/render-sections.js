@@ -399,33 +399,26 @@ async function renderSegments(){
     const mostRiddenSeg = [...segs].sort((a,b)=>(b.effort_count||0)-(a.effort_count||0))[0]||null;
     const longestSeg = [...segs].sort((a,b)=>(b.distance||0)-(a.distance||0))[0]||null;
 
-    const recHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px;">
-      ${fastestSeg ? `<div class="card" style="padding:14px 16px;border-color:rgba(252,76,2,.3)">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin-bottom:6px">Fastest PR Speed</div>
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${((fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time)*3.6).toFixed(1)} <span style="font-size:12px;opacity:.6">km/h</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fastestSeg.name}</div>
-      </div>` : ''}
-      ${steepestSeg ? `<div class="card" style="padding:14px 16px;border-color:rgba(248,113,113,.3)">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f87171;margin-bottom:6px">Steepest Segment</div>
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${parseFloat(steepestSeg.average_grade).toFixed(1)}<span style="font-size:12px;opacity:.6">%</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${steepestSeg.name}</div>
-      </div>` : ''}
-      ${mostRiddenSeg ? `<div class="card" style="padding:14px 16px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Most Ridden</div>
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${(mostRiddenSeg.effort_count||0).toLocaleString()} <span style="font-size:12px;opacity:.6">efforts</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mostRiddenSeg.name}</div>
-      </div>` : ''}
-      ${longestSeg ? `<div class="card" style="padding:14px 16px">
-        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Longest Segment</div>
-        <div style="font-size:20px;font-weight:800;color:var(--text)">${(longestSeg.distance/1000).toFixed(2)} <span style="font-size:12px;opacity:.6">km</span></div>
-        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${longestSeg.name}</div>
-      </div>` : ''}
-    </div>`;
+    // records highlight strip
+    const recItems = [
+      fastestSeg && {icon:'⚡',label:'Fastest PR Speed',val:((fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time)*3.6).toFixed(1),unit:'km/h',name:fastestSeg.name,color:'var(--orange)'},
+      steepestSeg && {icon:'⛰',label:'Steepest Segment',val:parseFloat(steepestSeg.average_grade).toFixed(1),unit:'%',name:steepestSeg.name,color:'#f87171'},
+      mostRiddenSeg && {icon:'🔁',label:'Most Ridden',val:(mostRiddenSeg.effort_count||0).toLocaleString(),unit:'efforts',name:mostRiddenSeg.name,color:'var(--muted)'},
+      longestSeg && {icon:'📏',label:'Longest',val:(longestSeg.distance/1000).toFixed(2),unit:'km',name:longestSeg.name,color:'var(--muted)'},
+    ].filter(Boolean);
 
-    el.innerHTML=recHtml+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">` + segs.map(s=>{
+    const recHtml = recItems.length ? `<div style="display:flex;gap:0;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden;margin-bottom:16px;">
+      ${recItems.map((r,i)=>`<div style="flex:1;padding:14px 18px;${i?'border-left:1px solid var(--border)':''}">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:${r.color};margin-bottom:5px">${r.icon} ${r.label}</div>
+        <div style="font-size:22px;font-weight:900;color:var(--text);line-height:1">${r.val} <span style="font-size:12px;opacity:.55;font-weight:600">${r.unit}</span></div>
+        <div style="font-size:10px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.name}</div>
+      </div>`).join('')}
+    </div>` : '';
+
+    el.innerHTML = recHtml + `<div style="display:flex;flex-direction:column;gap:10px;">` + segs.map(s=>{
       const dist      = (s.distance/1000).toFixed(2);
       const gradeNum  = s.average_grade!=null ? parseFloat(s.average_grade) : null;
-      const gradeStr  = gradeNum!=null ? gradeNum.toFixed(1)+'%' : '—';
+      const gradeStr  = gradeNum!=null ? gradeNum.toFixed(1)+'%' : null;
       const climb     = s.total_elevation_gain!=null ? Math.round(s.total_elevation_gain) : null;
       const pr        = s.athlete_pr_effort;
       const prTime    = pr ? fmtT(pr.elapsed_time) : null;
@@ -435,53 +428,45 @@ async function renderSegments(){
       const location  = [s.city,s.state,s.country].filter(Boolean).join(', ');
       const isKom     = s.athlete_segment_stats&&s.athlete_segment_stats.pr_rank===1;
 
-      // grade colour: green flat, yellow moderate, orange steep, red brutal
-      const gradeColor = gradeNum==null ? 'var(--muted)'
+      const gradeColor = gradeNum==null ? '#888'
         : gradeNum < 2  ? '#4ade80'
         : gradeNum < 5  ? '#facc15'
         : gradeNum < 8  ? '#fb923c'
         : '#f87171';
 
-      // grade bar width capped at 100%
       const gradeBarW = gradeNum!=null ? Math.min(Math.abs(gradeNum)/15*100, 100).toFixed(1) : 0;
 
+      const metaItems = [
+        {lbl:'Distance', val:dist, unit:'km'},
+        climb!=null && {lbl:'Elevation', val:climb, unit:'m'},
+        prTime && {lbl:'Your PR', val:prTime, sub:prSpeed?prSpeed+' km/h':null, cls:'seg-pr'},
+        kom && {lbl:'KOM', val:kom, style:'color:#ffd700'},
+        effortCnt && {lbl:'Efforts', val:effortCnt, unit:''},
+      ].filter(Boolean);
+
       return `
-      <div class="seg-card" id="segcard-${s.id}">
-        <div class="seg-map" id="segmap-${s.id}"></div>
-        <div class="seg-body">
-          <div class="seg-header">
+      <div class="seg-row${isKom?' is-kom':''}" id="segcard-${s.id}">
+        <div class="seg-thumb">
+          <div class="seg-map" id="segmap-${s.id}"></div>
+          ${gradeStr ? `<div class="seg-grade-pill" style="background:${gradeColor}">${gradeStr}</div>` : ''}
+          ${isKom ? `<div class="seg-kom-ribbon">👑 KOM</div>` : ''}
+        </div>
+        <div class="seg-info">
+          <div class="seg-info-top">
             <div class="seg-title-row">
               <a class="seg-name" href="https://www.strava.com/segments/${s.id}" target="_blank" rel="noopener">${s.name}</a>
-              ${isKom ? '<span class="seg-kom-badge">👑 KOM</span>' : ''}
             </div>
             ${location ? `<div class="seg-location">${location}</div>` : ''}
           </div>
-
-          <div class="seg-stats">
-            <div class="seg-stat">
-              <span class="seg-stat-lbl">Distance</span>
-              <span class="seg-stat-val">${dist} <span class="seg-stat-unit">km</span></span>
-            </div>
-            <div class="seg-stat">
-              <span class="seg-stat-lbl">Elevation</span>
-              <span class="seg-stat-val">${climb!=null ? climb+'<span class="seg-stat-unit"> m</span>' : '—'}</span>
-            </div>
-            <div class="seg-stat">
-              <span class="seg-stat-lbl">Your PR</span>
-              <span class="seg-stat-val ${prTime ? 'seg-pr' : ''}">${prTime||'—'}${prSpeed ? `<span class="seg-stat-unit"> · ${prSpeed} km/h</span>` : ''}</span>
-            </div>
-            <div class="seg-stat">
-              <span class="seg-stat-lbl">KOM / QOM</span>
-              <span class="seg-stat-val" style="color:#ffd700">${kom||'—'}</span>
-            </div>
+          <div class="seg-meta">
+            ${metaItems.map(m=>`<div class="seg-meta-item">
+              <span class="seg-meta-lbl">${m.lbl}</span>
+              <span class="seg-meta-val ${m.cls||''}" ${m.style?`style="${m.style}"`:''}>${m.val}${m.unit?' <span class="seg-meta-unit">'+m.unit+'</span>':''}</span>
+              ${m.sub ? `<span class="seg-meta-sub">${m.sub}</span>` : ''}
+            </div>`).join('')}
           </div>
-
-          <div class="seg-grade-row">
-            <div class="seg-grade-bar-track">
-              <div class="seg-grade-bar-fill" style="width:${gradeBarW}%;background:${gradeColor}"></div>
-            </div>
-            <span class="seg-grade-label" style="color:${gradeColor}">${gradeStr}</span>
-            ${effortCnt ? `<span class="seg-efforts">${effortCnt} efforts</span>` : ''}
+          <div class="seg-grade-bar-track">
+            <div class="seg-grade-bar-fill" style="width:${gradeBarW}%;background:${gradeColor}"></div>
           </div>
         </div>
       </div>`;
