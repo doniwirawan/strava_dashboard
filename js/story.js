@@ -909,41 +909,58 @@ function drawLayout(canvas,act,selected,sc,layout){
         const bg=ctx.createLinearGradient(0,0,0,H);
         bg.addColorStop(0,'#0d1a10');bg.addColorStop(0.5,'#0a1a14');bg.addColorStop(1,'#081210');
         ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+      }
 
-        // draw topographic contour lines
-        const contourCol='rgba(80,200,130,0.1)';
-        ctx.strokeStyle=contourCol;ctx.lineWidth=Math.round(1.5*S);
+      // build contour rings from actual route shape
+      // project route into canvas space (same as drawRoute would), then expand outward
+      if(polyline&&polyline.length>1){
+        const topoX=P, topoY=Math.round(P*1.4), topoW=W-P*2, topoH=Math.round(H*0.48);
+        const lats=polyline.map(p=>p[0]),lngs=polyline.map(p=>p[1]);
+        const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+        const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+        const latSpan=maxLat-minLat||0.001,lngSpan=maxLng-minLng||0.001;
+        const pad=0.08;
+        const scaleR=Math.min((topoW*(1-pad*2))/lngSpan,(topoH*(1-pad*2))/latSpan);
+        const drawW=lngSpan*scaleR,drawH=latSpan*scaleR;
+        const ox=topoX+(topoW-drawW)/2,oy=topoY+(topoH-drawH)/2;
+        // centroid of projected route
+        const pts2=polyline.map(p=>[(ox+(p[1]-minLng)*scaleR),(oy+(maxLat-p[0])*scaleR)]);
+        const cx0=pts2.reduce((s,p)=>s+p[0],0)/pts2.length;
+        const cy0=pts2.reduce((s,p)=>s+p[1],0)/pts2.length;
+        // draw 22 contour rings: scale each point outward from centroid
+        const RINGS=22;
+        for(let ring=0;ring<RINGS;ring++){
+          const scale=1+ring*0.2; // expand 20% per ring
+          const isBold=(ring%5===0);
+          ctx.strokeStyle=isBold?'rgba(80,200,130,0.2)':'rgba(80,200,130,0.07)';
+          ctx.lineWidth=(isBold?2.5:1.2)*S;
+          ctx.beginPath();
+          pts2.forEach((p,i)=>{
+            const px=cx0+(p[0]-cx0)*scale;
+            const py=cy0+(p[1]-cy0)*scale;
+            i===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+          });
+          ctx.closePath();ctx.stroke();
+        }
+      } else {
+        // fallback: generic rings if no route
         const cx0=W*0.5,cy0=H*0.42;
         for(let ring=0;ring<22;ring++){
           const rx=W*(0.18+ring*0.055),ry=H*(0.1+ring*0.043);
-          const noise=(ring%3===0?0.08:ring%3===1?0.05:0.12);
+          const isBold=(ring%5===0);
+          ctx.strokeStyle=isBold?'rgba(80,200,130,0.2)':'rgba(80,200,130,0.07)';
+          ctx.lineWidth=(isBold?2.5:1.2)*S;
           ctx.beginPath();
           for(let a=0;a<=360;a+=4){
             const rad=a*Math.PI/180;
-            const jitter=1+(Math.sin(rad*3+ring*1.1)*noise+Math.sin(rad*7+ring*2.3)*noise*0.5);
-            const px=cx0+Math.cos(rad)*rx*jitter;
-            const py=cy0+Math.sin(rad)*ry*jitter;
-            a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+            const jit=1+(Math.sin(rad*3+ring*1.1)*0.09+Math.sin(rad*7+ring*2.3)*0.05);
+            ctx.lineTo(cx0+Math.cos(rad)*rx*jit,cy0+Math.sin(rad)*ry*jit);
           }
           ctx.closePath();ctx.stroke();
         }
-        // a few bold accent rings
-        ctx.strokeStyle='rgba(80,200,130,0.22)';ctx.lineWidth=Math.round(2.5*S);
-        [4,10,17].forEach(ring=>{
-          const rx=W*(0.18+ring*0.055),ry=H*(0.1+ring*0.043);
-          ctx.beginPath();
-          for(let a=0;a<=360;a+=4){
-            const rad=a*Math.PI/180;
-            const jitter=1+(Math.sin(rad*3+ring*1.1)*0.09+Math.sin(rad*7+ring*2.3)*0.05);
-            const px=cx0+Math.cos(rad)*rx*jitter;
-            const py=cy0+Math.sin(rad)*ry*jitter;
-            a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
-          }
-          ctx.closePath();ctx.stroke();
-        });
       }
 
-      // route on top of contours
+      // actual route on top of contours
       if(polyline&&polyline.length>1){
         ctx.shadowColor='rgba(80,220,140,0.7)';ctx.shadowBlur=Math.round(14*S);
         drawRoute(ctx,polyline,P,Math.round(P*1.4),W-P*2,Math.round(H*0.48),'#50dc8c',Math.round(5*S));
