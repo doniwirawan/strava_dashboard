@@ -145,6 +145,7 @@ const LAYOUTS=[
   {id:'explorer', name:'Explorer'},
   {id:'topo',     name:'Topo'},
   {id:'graphic',  name:'Graphic'},
+  {id:'field',    name:'Field'},
 ];
 
 function drawLayout(canvas,act,selected,sc,layout){
@@ -695,7 +696,7 @@ function drawLayout(canvas,act,selected,sc,layout){
       const cr=Math.round(22*S);
       ctx.save();
       ctx.beginPath();ctx.roundRect(cardX,cardY,cardW,cardH,cr);ctx.clip();
-      ctx.fillStyle='rgba(245,245,245,0.94)';ctx.fillRect(cardX,cardY,cardW,cardH);
+      ctx.fillStyle='rgba(12,14,28,0.88)';ctx.fillRect(cardX,cardY,cardW,cardH);
       ctx.restore();
 
       const cx=cardX+Math.round(28*S),cInnerW=cardW-Math.round(56*S);
@@ -723,7 +724,7 @@ function drawLayout(canvas,act,selected,sc,layout){
       let nfs=Math.round(46*S);
       ctx.font=`900 ${nfs}px -apple-system,sans-serif`;
       while(nfs>Math.round(22*S)&&ctx.measureText(nm2).width>cInnerW){nfs-=Math.max(1,Math.round(2*S));ctx.font=`900 ${nfs}px -apple-system,sans-serif`;}
-      ctx.fillStyle='#111';ctx.textAlign='left';ctx.letterSpacing='-1px';
+      ctx.fillStyle='#f0f0ff';ctx.textAlign='left';ctx.letterSpacing='-1px';
       ctx.fillText(nm2,cx,cy3);
       cy3+=Math.round(10*S);
 
@@ -731,14 +732,14 @@ function drawLayout(canvas,act,selected,sc,layout){
       const loc2=[act.location_city,act.location_state,act.location_country].filter(Boolean).join(', ')
         ||(act.start_latlng&&act.start_latlng.length?`${act.start_latlng[0].toFixed(2)}, ${act.start_latlng[1].toFixed(2)}`:'');
       if(loc2||act.start_date){
-        ctx.fillStyle='#888';ctx.font=`400 ${Math.round(18*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';
+        ctx.fillStyle='rgba(180,185,255,0.55)';ctx.font=`400 ${Math.round(18*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';
         ctx.fillText((loc2||(act.start_date?fmtDt(act.start_date):'')),cx,cy3+Math.round(22*S));
         cy3+=Math.round(34*S);
       }
       cy3+=Math.round(10*S);
 
       // divider
-      ctx.fillStyle='rgba(0,0,0,0.08)';ctx.fillRect(cx,cy3,cInnerW,Math.round(1*S));
+      ctx.fillStyle='rgba(255,255,255,0.08)';ctx.fillRect(cx,cy3,cInnerW,Math.round(1*S));
       cy3+=Math.round(18*S);
 
       // stat rows with waveform between each
@@ -773,7 +774,7 @@ function drawLayout(canvas,act,selected,sc,layout){
 
       statRows.forEach((r,i)=>{
         // label
-        ctx.fillStyle='#999';ctx.font=`600 ${Math.round(13*S)}px -apple-system,sans-serif`;
+        ctx.fillStyle='rgba(180,185,255,0.55)';ctx.font=`600 ${Math.round(13*S)}px -apple-system,sans-serif`;
         ctx.textAlign='left';ctx.letterSpacing='0.02em';
         ctx.fillText(r.label.toUpperCase(),cx,cy3+Math.round(16*S));
         if(r.rLbl){
@@ -784,22 +785,22 @@ function drawLayout(canvas,act,selected,sc,layout){
         let vfs2=Math.round(54*S);
         ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;
         while(vfs2>Math.round(22*S)&&ctx.measureText(r.val).width>cInnerW*0.55){vfs2-=Math.max(1,Math.round(2*S));ctx.font=`900 ${vfs2}px -apple-system,sans-serif`;}
-        ctx.fillStyle='#111';ctx.textAlign='left';ctx.letterSpacing='-1px';
+        ctx.fillStyle='#dde2ff';ctx.textAlign='left';ctx.letterSpacing='-1px';
         ctx.fillText(r.val,cx,cy3+Math.round(62*S));
         if(r.right){
           let rfs=Math.round(22*S);
           ctx.font=`700 ${rfs}px -apple-system,sans-serif`;
-          ctx.fillStyle='#555';ctx.textAlign='right';ctx.letterSpacing='0';
+          ctx.fillStyle='rgba(180,185,255,0.65)';ctx.textAlign='right';ctx.letterSpacing='0';
           ctx.fillText(r.right,cx+cInnerW,cy3+Math.round(62*S));
         }
         cy3+=rowH;
         // waveform after each stat (except last)
         if(i<statRows.length-1){
-          ctx.globalAlpha=0.45;
-          wave(cx,cy3-waveH+Math.round(8*S),cInnerW,waveH,seed+i*2.7,'#FC4C02',1.5);
+          ctx.globalAlpha=0.55;
+          wave(cx,cy3-waveH+Math.round(8*S),cInnerW,waveH,seed+i*2.7,'#7c8fff',1.5);
           ctx.globalAlpha=1;
           // divider
-          ctx.fillStyle='rgba(0,0,0,0.06)';ctx.fillRect(cx,cy3-Math.round(4*S),cInnerW,Math.round(1*S));
+          ctx.fillStyle='rgba(255,255,255,0.06)';ctx.fillRect(cx,cy3-Math.round(4*S),cInnerW,Math.round(1*S));
           cy3+=Math.round(8*S);
         }
       });
@@ -1083,6 +1084,94 @@ function drawLayout(canvas,act,selected,sc,layout){
 
       if(!hideLogo){ctx.fillStyle='rgba(252,76,2,0.45)';ctx.font=`900 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.textAlign='right';ctx.letterSpacing='0.1em';
       ctx.fillText('STRAVA',W-P,H-Math.round(44*S));}
+      break;
+    }
+
+    /* 19. FIELD — photo-overlay style, route dominant right side, stats scattered */
+    case 'field':{
+      // dark outdoor gradient when no photo
+      if(!skipBg){
+        const bg=ctx.createLinearGradient(0,0,W*0.3,H);
+        bg.addColorStop(0,'#0d1408');bg.addColorStop(0.6,'#1a2010');bg.addColorStop(1,'#0a0f08');
+        ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+        // vignette
+        const vig=ctx.createRadialGradient(W/2,H/2,H*0.2,W/2,H/2,H*0.85);
+        vig.addColorStop(0,'transparent');vig.addColorStop(1,'rgba(0,0,0,0.55)');
+        ctx.fillStyle=vig;ctx.fillRect(0,0,W,H);
+      }
+
+      // helper: draw a stat block at position (label above, value below)
+      function statBlock(lbl,val,x,y,align){
+        ctx.save();
+        ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=Math.round(10*S);
+        ctx.textAlign=align||'left';
+        ctx.fillStyle='rgba(255,255,255,0.58)';ctx.font=`600 ${Math.round(17*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0.08em';
+        ctx.fillText(lbl.toUpperCase(),x,y);
+        ctx.fillStyle='#ffffff';ctx.font=`800 ${Math.round(42*S)}px -apple-system,sans-serif`;ctx.letterSpacing='-1px';
+        ctx.fillText(val,x,y+Math.round(54*S));
+        ctx.restore();
+      }
+
+      const isCycF=isRide(act);
+      const dist=fmtD(act.distance||0);
+      const elev='+'+Math.round(act.total_elevation_gain||0)+'m';
+      const time=fmtT(act.moving_time||0);
+      const avgSpd=act.average_speed?kmh(act.average_speed)+' km/h':'—';
+      const maxSpd=act.max_speed?kmh(act.max_speed)+' km/h':'—';
+      const pwr=act.average_watts?Math.round(act.average_watts)+' W':'—';
+      const cad=act.average_cadence?Math.round(act.average_cadence)+' rpm':'—';
+      const hr=act.average_heartrate?Math.round(act.average_heartrate)+' bpm':'—';
+
+      // route — large, right half, slightly offset up
+      if(polyline&&polyline.length>1&&!hideRoute){
+        const rX=Math.round(W*0.30),rY=Math.round(H*0.14),rW=Math.round(W*0.64),rH=Math.round(H*0.56);
+        ctx.shadowColor='rgba(255,255,255,0.35)';ctx.shadowBlur=Math.round(16*S);
+        ctx.globalAlpha=0.85;
+        drawRoute(ctx,polyline,rX,rY,rW,rH,'#ffffff',Math.round(5*S));
+        ctx.globalAlpha=1;ctx.shadowBlur=0;
+      }
+
+      // TOP: distance (left) + elevation (right)
+      statBlock(isCycF?'Distance':'Distance', dist, P, Math.round(H*0.12));
+      statBlock('Elevation', elev, W-P, Math.round(H*0.12),'right');
+
+      // MIDDLE-LEFT: speed (cycling) or pace (running)
+      if(isCycF){
+        statBlock('Avg Speed', avgSpd, P, Math.round(H*0.50));
+      } else {
+        const pace=act.moving_time&&act.distance?(()=>{const s=Math.round(act.moving_time/(act.distance/1000));return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}/km`;})():'—';
+        statBlock('Avg Pace', pace, P, Math.round(H*0.50));
+      }
+
+      // BOTTOM ROW: 3 stats spread across
+      const b1x=P, b2x=W/2, b3x=W-P;
+      const bY=Math.round(H*0.76);
+      if(isCycF){
+        statBlock('Avg Power', pwr, b1x, bY);
+        statBlock('Cadence', cad, b2x, bY,'center');
+        statBlock('Ride Time', time, b3x, bY,'right');
+      } else {
+        statBlock('Avg HR', hr, b1x, bY);
+        statBlock('Cadence', cad, b2x, bY,'center');
+        statBlock('Run Time', time, b3x, bY,'right');
+      }
+
+      // activity name + date — very bottom
+      if(!hideTitle){
+        const nm=act.name||'Activity';
+        let nfs=Math.round(30*S);ctx.font=`700 ${nfs}px -apple-system,sans-serif`;ctx.shadowColor='rgba(0,0,0,0.9)';ctx.shadowBlur=Math.round(8*S);
+        while(nfs>14&&ctx.measureText(nm).width>W-P*2){nfs--;ctx.font=`700 ${nfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='rgba(255,255,255,0.75)';ctx.textAlign='left';ctx.letterSpacing='-0.3px';
+        ctx.fillText(nm,P,H-Math.round(80*S));ctx.shadowBlur=0;
+      }
+      if(!hideDate){
+        ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font=`400 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=Math.round(6*S);ctx.letterSpacing='0';ctx.textAlign='left';
+        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),P,H-Math.round(48*S));ctx.shadowBlur=0;
+      }
+      if(!hideLogo){
+        ctx.fillStyle='rgba(252,76,2,0.7)';ctx.font=`900 ${Math.round(22*S)}px -apple-system,sans-serif`;ctx.shadowColor='rgba(0,0,0,0.8)';ctx.shadowBlur=Math.round(6*S);ctx.letterSpacing='0.08em';ctx.textAlign='right';
+        ctx.fillText('STRAVA',W-P,H-Math.round(48*S));ctx.shadowBlur=0;
+      }
       break;
     }
   }
