@@ -1,26 +1,3 @@
-/* ── COLOR SCHEME CLICKS ── */
-document.getElementById('colorPicker').addEventListener('click',e=>{
-  const sw=e.target.closest('.color-swatch');
-  if(!sw)return;
-  useCustom=false;
-  document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
-  sw.classList.add('active');
-  activeScheme=sw.dataset.scheme;
-  drawStoryCanvas();
-});
-
-/* ── CUSTOM COLOR PICKERS ── */
-['cc-bg','cc-accent','cc-text'].forEach(id=>{
-  document.getElementById(id).addEventListener('input',()=>{
-    useCustom=true;
-    customBg=document.getElementById('cc-bg').value;
-    customAccent=document.getElementById('cc-accent').value;
-    customText=document.getElementById('cc-text').value;
-    document.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('active'));
-    drawStoryCanvas();
-  });
-});
-
 /* ── STORY MODAL EVENTS ── */
 document.getElementById('shareBtn').addEventListener('click', openStoryModal);
 document.getElementById('modalClose').addEventListener('click',  ()=>document.getElementById('storyModal').classList.remove('open'));

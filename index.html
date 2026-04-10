@@ -356,10 +356,8 @@
         <div>
           <div class="picker-label">Background Image</div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
-            <label style="display:flex;align-items:center;gap:6px;font-size:11px;cursor:pointer;padding:6px 12px;background:var(--surface2);border-radius:5px;border:1px solid var(--border);">
-              Upload Photo
-              <input type="file" id="bgImageInput" accept="image/*" style="display:none">
-            </label>
+            <button type="button" class="btn btn-ghost" id="bgUploadBtn" style="font-size:11px;padding:5px 12px;">Upload Photo</button>
+            <input type="file" id="bgImageInput" accept="image/*" style="opacity:0;position:absolute;width:1px;height:1px;pointer-events:none;overflow:hidden;">
             <button class="btn btn-ghost" id="clearBgBtn" style="font-size:11px;padding:5px 10px;display:none">✕ Clear</button>
             <span id="bgImageName" style="font-size:11px;color:var(--muted);"></span>
           </div>
@@ -368,37 +366,6 @@
         <div>
           <div class="picker-label">Stats</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;" id="statToggles"></div>
-        </div>
-
-        <div>
-          <div class="picker-label">Color Scheme</div>
-          <div style="display:flex;gap:7px;flex-wrap:wrap;margin-bottom:10px;" id="colorPicker">
-            <button class="color-swatch active" data-scheme="transp" style="background:repeating-conic-gradient(#aaa 0% 25%,#fff 0% 50%) 0 0/10px 10px;border-color:var(--orange);" title="Transparent"></button>
-            <button class="color-swatch" data-scheme="white"    style="background:#fff;"                                    title="White"></button>
-            <button class="color-swatch" data-scheme="dark"     style="background:#111;"                                    title="Dark"></button>
-            <button class="color-swatch" data-scheme="orange"   style="background:#FC4C02;"                                 title="Orange"></button>
-            <button class="color-swatch" data-scheme="black"    style="background:#000;"                                    title="Black"></button>
-            <button class="color-swatch" data-scheme="night"    style="background:linear-gradient(135deg,#0a0c1c,#10142a);" title="Night"></button>
-            <button class="color-swatch" data-scheme="forest"   style="background:linear-gradient(135deg,#0a160a,#162a16);" title="Forest"></button>
-            <button class="color-swatch" data-scheme="slate"    style="background:linear-gradient(135deg,#0e1420,#141e30);" title="Slate"></button>
-            <button class="color-swatch" data-scheme="gold"     style="background:linear-gradient(135deg,#b8860b,#ffd700);" title="Gold"></button>
-            <button class="color-swatch" data-scheme="silver"   style="background:linear-gradient(135deg,#888,#e0e0e0);"   title="Silver"></button>
-            <button class="color-swatch" data-scheme="bronze"   style="background:linear-gradient(135deg,#7a4a1e,#cd7f32);" title="Bronze"></button>
-            <button class="color-swatch" data-scheme="rosegold" style="background:linear-gradient(135deg,#b5787a,#f4c2c2);" title="Rose Gold"></button>
-            <button class="color-swatch" data-scheme="emerald"  style="background:linear-gradient(135deg,#004d2e,#00a86b);" title="Emerald"></button>
-            <button class="color-swatch" data-scheme="sapphire" style="background:linear-gradient(135deg,#0a1f5c,#1e56c8);" title="Sapphire"></button>
-          </div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-            <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">
-              BG <input type="color" id="cc-bg" value="#ffffff" style="width:100%;height:28px;border:none;border-radius:4px;cursor:pointer;padding:0;">
-            </label>
-            <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">
-              Accent <input type="color" id="cc-accent" value="#FC4C02" style="width:100%;height:28px;border:none;border-radius:4px;cursor:pointer;padding:0;">
-            </label>
-            <label style="display:flex;flex-direction:column;gap:4px;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);">
-              Text <input type="color" id="cc-text" value="#111111" style="width:100%;height:28px;border:none;border-radius:4px;cursor:pointer;padding:0;">
-            </label>
-          </div>
         </div>
 
         <div class="modal-actions">
