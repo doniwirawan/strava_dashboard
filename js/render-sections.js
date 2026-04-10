@@ -136,7 +136,7 @@ function renderHeatmap(){
   const el=document.getElementById('leafletMap');
   if(leafletMapInst){leafletMapInst.remove();leafletMapInst=null;}
 
-  leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:10});
+  leafletMapInst=L.map(el,{zoomControl:true,scrollWheelZoom:true,center:[-8.34,115.09],zoom:12});
   L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{
     attribution:'&copy; <a href="https://carto.com">CARTO</a>',maxZoom:19,subdomains:'abcd'
   }).addTo(leafletMapInst);
@@ -153,8 +153,8 @@ function renderHeatmap(){
     }catch{}
   });
 
-  if(bounds.length) leafletMapInst.fitBounds(bounds,{padding:[20,20]});
-  else leafletMapInst.setView([-8.34,115.09],11);
+  if(bounds.length) leafletMapInst.fitBounds(bounds,{padding:[20,20],maxZoom:14});
+  else leafletMapInst.setView([-8.34,115.09],12);
 }
 
 /* ── MILESTONES ── */
@@ -323,7 +323,28 @@ async function renderChallenges(){
     {key:'DIST', emoji:'🚴',name:'1,000 km Club',val:Math.round(totalRideDist).toLocaleString(),unit:'km ridden',color:'#00cc88',unlocked:totalRideDist>=1000},
   ];
 
-  let html=`<div class="ach-grid">`;
+  // athlete profile card
+  let html='';
+  if(currentAthlete){
+    const profileImg=currentAthlete.profile_medium||currentAthlete.profile||'';
+    const name=(currentAthlete.firstname||'')+' '+(currentAthlete.lastname||'');
+    const city=[currentAthlete.city,currentAthlete.state,currentAthlete.country].filter(Boolean).join(', ');
+    html+=`<div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px;margin-bottom:20px;border-color:rgba(252,76,2,.2);background:linear-gradient(135deg,rgba(252,76,2,.06) 0%,transparent 60%)">
+      ${profileImg?`<img src="${profileImg}" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--orange);flex-shrink:0;object-fit:cover" onerror="this.style.display='none'">` : ''}
+      <div style="flex:1;min-width:0">
+        <div style="font-size:22px;font-weight:900;letter-spacing:-.5px">${name}</div>
+        ${city?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${city}</div>`:''}
+        <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap">
+          <div><div style="font-size:18px;font-weight:800;color:var(--orange)">${totalAch.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Achievements</div></div>
+          <div><div style="font-size:18px;font-weight:800;color:var(--text)">${totalPR.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">PRs</div></div>
+          <div><div style="font-size:18px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Kudos</div></div>
+          <div><div style="font-size:18px;font-weight:800;color:#ffd700">${komList.length}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">KOMs</div></div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  html+=`<div class="ach-grid">`;
   html+=badges.map(b=>`
     <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
       ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
@@ -367,7 +388,41 @@ async function renderSegments(){
     const segs=await api('/segments/starred?per_page=50');
     if(!segs||!segs.length){el.innerHTML='<p style="color:var(--muted);padding:8px">No starred segments.</p>';return;}
 
-    el.innerHTML=segs.map(s=>{
+    // compute segment records
+    const withPR = segs.filter(s=>s.athlete_pr_effort&&s.distance&&s.athlete_pr_effort.elapsed_time);
+    const fastestSeg = withPR.length ? withPR.reduce((best,s)=>{
+      const spd=(s.distance/s.athlete_pr_effort.elapsed_time)*3.6;
+      const bSpd=(best.distance/best.athlete_pr_effort.elapsed_time)*3.6;
+      return spd>bSpd?s:best;
+    }) : null;
+    const steepestSeg = segs.filter(s=>s.average_grade!=null).sort((a,b)=>b.average_grade-a.average_grade)[0]||null;
+    const mostRiddenSeg = [...segs].sort((a,b)=>(b.effort_count||0)-(a.effort_count||0))[0]||null;
+    const longestSeg = [...segs].sort((a,b)=>(b.distance||0)-(a.distance||0))[0]||null;
+
+    const recHtml = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:18px;">
+      ${fastestSeg ? `<div class="card" style="padding:14px 16px;border-color:rgba(252,76,2,.3)">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--orange);margin-bottom:6px">Fastest PR Speed</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${((fastestSeg.distance/fastestSeg.athlete_pr_effort.elapsed_time)*3.6).toFixed(1)} <span style="font-size:12px;opacity:.6">km/h</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${fastestSeg.name}</div>
+      </div>` : ''}
+      ${steepestSeg ? `<div class="card" style="padding:14px 16px;border-color:rgba(248,113,113,.3)">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#f87171;margin-bottom:6px">Steepest Segment</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${parseFloat(steepestSeg.average_grade).toFixed(1)}<span style="font-size:12px;opacity:.6">%</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${steepestSeg.name}</div>
+      </div>` : ''}
+      ${mostRiddenSeg ? `<div class="card" style="padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Most Ridden</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${(mostRiddenSeg.effort_count||0).toLocaleString()} <span style="font-size:12px;opacity:.6">efforts</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${mostRiddenSeg.name}</div>
+      </div>` : ''}
+      ${longestSeg ? `<div class="card" style="padding:14px 16px">
+        <div style="font-size:9px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Longest Segment</div>
+        <div style="font-size:20px;font-weight:800;color:var(--text)">${(longestSeg.distance/1000).toFixed(2)} <span style="font-size:12px;opacity:.6">km</span></div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${longestSeg.name}</div>
+      </div>` : ''}
+    </div>`;
+
+    el.innerHTML=recHtml+`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px;">` + segs.map(s=>{
       const dist      = (s.distance/1000).toFixed(2);
       const gradeNum  = s.average_grade!=null ? parseFloat(s.average_grade) : null;
       const gradeStr  = gradeNum!=null ? gradeNum.toFixed(1)+'%' : '—';
@@ -430,7 +485,7 @@ async function renderSegments(){
           </div>
         </div>
       </div>`;
-    }).join('');
+    }).join('')+'</div>';
 
     // init mini maps
     if(!window.L) return;
@@ -449,6 +504,7 @@ async function renderSegments(){
         L.circleMarker(coords[0],{radius:5,color:'#4ade80',fillColor:'#4ade80',fillOpacity:1,weight:0}).addTo(m);
         L.circleMarker(coords[coords.length-1],{radius:5,color:'#FC4C02',fillColor:'#FC4C02',fillOpacity:1,weight:0}).addTo(m);
         m.fitBounds(line.getBounds(),{padding:[16,16]});
+        setTimeout(()=>{try{m.invalidateSize();}catch{}},300);
       }catch{}
     });
   }catch(e){

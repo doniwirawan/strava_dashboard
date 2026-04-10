@@ -19,26 +19,6 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   localStorage.removeItem('strava_expires_at');
   location.reload();
 });
-document.getElementById('resetBtn').addEventListener('click', function() {
-  if(this.dataset.confirm === '1') {
-    localStorage.clear();
-    location.reload();
-  } else {
-    this.dataset.confirm = '1';
-    this.textContent = '⚠ Sure?';
-    this.style.color = '#FC4C02';
-    this.style.borderColor = '#FC4C02';
-    setTimeout(() => {
-      this.dataset.confirm = '';
-      this.textContent = '⟳ Reset';
-      this.style.color = '';
-      this.style.borderColor = '';
-    }, 3000);
-  }
-});
-document.getElementById('demoBtn').addEventListener('click', ()=>{
-  document.getElementById('demoBtn').disabled=true; loadDemo();
-});
 
 /* ── HAMBURGER MENU ── */
 (function(){
@@ -74,9 +54,7 @@ document.getElementById('demoBtn').addEventListener('click', ()=>{
     [
       {id:'shareBtn'},
       {id:'logoutBtn'},
-      {id:'demoBtn'},
       {id:'mainBtn'},
-      {id:'resetBtn',muted:true},
     ].forEach(({id,muted})=>{
       const orig=document.getElementById(id);
       if(!orig||orig.style.display==='none') return;

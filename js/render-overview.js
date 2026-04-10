@@ -47,6 +47,26 @@ function renderStats() {
   const ridingActs = rides.filter(a=>a.average_speed>0);
   const avgSpd = ridingActs.length ? ridingActs.reduce((s,a)=>s+a.average_speed,0)/ridingActs.length*3.6 : 0;
 
+  // max speed across all rides (max_speed field is in m/s)
+  const maxSpd = rides.reduce((m,a)=>a.max_speed>m?a.max_speed:m,0)*3.6;
+
+  // avg heart rate across activities that have it
+  const hrActs = acts.filter(a=>a.average_heartrate>0);
+  const avgHR  = hrActs.length ? Math.round(hrActs.reduce((s,a)=>s+a.average_heartrate,0)/hrActs.length) : 0;
+
+  // best consecutive day streak
+  const daySet = new Set(acts.map(a=>a.start_date.slice(0,10)));
+  const days   = [...daySet].sort();
+  let bestStreak=days.length?1:0, curStreak=days.length?1:0;
+  for(let i=1;i<days.length;i++){
+    const diff=(new Date(days[i])-new Date(days[i-1]))/(864e5);
+    if(diff===1){curStreak++;bestStreak=Math.max(bestStreak,curStreak);}
+    else curStreak=1;
+  }
+
+  // calories: sum of kilojoules (≈ kcal for cycling) or calories field
+  const totalCal = Math.round(acts.reduce((s,a)=>s+(a.kilojoules||a.calories||0),0));
+
   document.getElementById('sv-acts').textContent    = acts.length;
   document.getElementById('sv-dist').textContent    = fmtD(dist);
   document.getElementById('sv-dist-sub').textContent= 'avg '+fmtD(dist/acts.length);
@@ -61,6 +81,10 @@ function renderStats() {
   document.getElementById('sv-ach').textContent     = achs.toLocaleString();
   document.getElementById('sv-longest').textContent = longest?(longest/1000).toFixed(1):'—';
   document.getElementById('sv-avgspd').textContent  = avgSpd?avgSpd.toFixed(1):'—';
+  document.getElementById('sv-maxspd').textContent  = maxSpd?maxSpd.toFixed(1):'—';
+  document.getElementById('sv-avghr').textContent   = avgHR||'—';
+  document.getElementById('sv-streak').textContent  = bestStreak||'—';
+  document.getElementById('sv-cal').textContent     = totalCal?Math.round(totalCal/1000)+'k':'—';
 }
 
 /* ── EDDINGTON ── */
