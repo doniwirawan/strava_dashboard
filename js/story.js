@@ -18,7 +18,7 @@ const STAT_DEFS = [
 let checkedStats = new Set(['distance','moving_time','average_speed','max_speed','total_elevation_gain','average_heartrate']);
 let activeScheme = 'transp';
 let activeLayout = 'strip';
-let hideTitle = false, hideDate = false, hideRoute = false;
+let hideTitle = false, hideDate = false, hideRoute = false, hideLogo = false;
 let storyBgImage = null; // uploaded background image
 
 const SCHEMES = {
@@ -143,6 +143,8 @@ const LAYOUTS=[
   {id:'ink',      name:'Ink'},
   {id:'nightrun', name:'Night Run'},
   {id:'explorer', name:'Explorer'},
+  {id:'topo',     name:'Topo'},
+  {id:'graphic',  name:'Graphic'},
 ];
 
 function drawLayout(canvas,act,selected,sc,layout){
@@ -424,8 +426,8 @@ function drawLayout(canvas,act,selected,sc,layout){
       if(sc.card!=='transparent'){ctx.fillStyle=sc.card;ctx.fillRect(0,cY,W,cH);}
       title(P,cY+Math.round(72*S),W-P*2,50);
       grid(selected,0,cY+Math.round(160*S),W,cH-Math.round(168*S),2);
-      ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font=F(26,400);ctx.textAlign='center';ctx.letterSpacing='0.12em';
-      ctx.fillText('STRAVA · '+new Date().getFullYear(),W/2,cY-Math.round(32*S));ctx.letterSpacing='0px';
+      if(!hideLogo){ctx.fillStyle='rgba(255,255,255,0.18)';ctx.font=F(26,400);ctx.textAlign='center';ctx.letterSpacing='0.12em';
+      ctx.fillText('STRAVA · '+new Date().getFullYear(),W/2,cY-Math.round(32*S));ctx.letterSpacing='0px';}
       if(polyline&&polyline.length>1){
         drawRoute(ctx,polyline,P,cY+cH+Math.round(32*S),W-P*2,H-(cY+cH)-Math.round(48*S),sc.accent,Math.round(4*S));
       }
@@ -708,10 +710,12 @@ function drawLayout(canvas,act,selected,sc,layout){
       ctx.textAlign='left';ctx.letterSpacing='0.06em';
       ctx.fillText(actType,cx+Math.round(10*S),cy3+Math.round(18*S));
       // Strava logo mark top-right
-      const lx=cardX+cardW-Math.round(32*S),ly=cy3+Math.round(13*S);
-      ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(16*S)}px -apple-system,sans-serif`;
-      ctx.textAlign='right';ctx.letterSpacing='-1px';
-      ctx.fillText('S',lx,ly);
+      if(!hideLogo){
+        const lx=cardX+cardW-Math.round(32*S),ly=cy3+Math.round(13*S);
+        ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(16*S)}px -apple-system,sans-serif`;
+        ctx.textAlign='right';ctx.letterSpacing='-1px';
+        ctx.fillText('S',lx,ly);
+      }
       cy3+=Math.round(44*S);
 
       // activity name
@@ -892,9 +896,193 @@ function drawLayout(canvas,act,selected,sc,layout){
       }
 
       // Strava logo mark bottom-right
-      ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(28*S)}px -apple-system,sans-serif`;ctx.letterSpacing='-1px';ctx.textAlign='right';
-      ctx.fillText('STRAVA',W-Math.round(52*S),bandY+Math.round(90*S));
+      if(!hideLogo){ctx.fillStyle='#FC4C02';ctx.font=`900 ${Math.round(28*S)}px -apple-system,sans-serif`;ctx.letterSpacing='-1px';ctx.textAlign='right';
+      ctx.fillText('STRAVA',W-Math.round(52*S),bandY+Math.round(90*S));}
 
+      break;
+    }
+
+    /* 17. TOPO — topographic contour lines + clean stat panels */
+    case 'topo':{
+      if(!skipBg){
+        const bg=ctx.createLinearGradient(0,0,0,H);
+        bg.addColorStop(0,'#0d1a10');bg.addColorStop(0.5,'#0a1a14');bg.addColorStop(1,'#081210');
+        ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+
+        // draw topographic contour lines
+        const contourCol='rgba(80,200,130,0.1)';
+        ctx.strokeStyle=contourCol;ctx.lineWidth=Math.round(1.5*S);
+        const cx0=W*0.5,cy0=H*0.42;
+        for(let ring=0;ring<22;ring++){
+          const rx=W*(0.18+ring*0.055),ry=H*(0.1+ring*0.043);
+          const noise=(ring%3===0?0.08:ring%3===1?0.05:0.12);
+          ctx.beginPath();
+          for(let a=0;a<=360;a+=4){
+            const rad=a*Math.PI/180;
+            const jitter=1+(Math.sin(rad*3+ring*1.1)*noise+Math.sin(rad*7+ring*2.3)*noise*0.5);
+            const px=cx0+Math.cos(rad)*rx*jitter;
+            const py=cy0+Math.sin(rad)*ry*jitter;
+            a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+          }
+          ctx.closePath();ctx.stroke();
+        }
+        // a few bold accent rings
+        ctx.strokeStyle='rgba(80,200,130,0.22)';ctx.lineWidth=Math.round(2.5*S);
+        [4,10,17].forEach(ring=>{
+          const rx=W*(0.18+ring*0.055),ry=H*(0.1+ring*0.043);
+          ctx.beginPath();
+          for(let a=0;a<=360;a+=4){
+            const rad=a*Math.PI/180;
+            const jitter=1+(Math.sin(rad*3+ring*1.1)*0.09+Math.sin(rad*7+ring*2.3)*0.05);
+            const px=cx0+Math.cos(rad)*rx*jitter;
+            const py=cy0+Math.sin(rad)*ry*jitter;
+            a===0?ctx.moveTo(px,py):ctx.lineTo(px,py);
+          }
+          ctx.closePath();ctx.stroke();
+        });
+      }
+
+      // route on top of contours
+      if(polyline&&polyline.length>1){
+        ctx.shadowColor='rgba(80,220,140,0.7)';ctx.shadowBlur=Math.round(14*S);
+        drawRoute(ctx,polyline,P,Math.round(P*1.4),W-P*2,Math.round(H*0.48),'#50dc8c',Math.round(5*S));
+        ctx.shadowBlur=0;
+      }
+
+      // title block
+      if(!hideTitle){
+        const nm=act.name||'Activity';
+        let nfs=Math.round(44*S);
+        ctx.font=`800 ${nfs}px -apple-system,sans-serif`;
+        while(nfs>Math.round(18*S)&&ctx.measureText(nm).width>W-P*2){nfs-=2;ctx.font=`800 ${nfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#a0ffcc';ctx.textAlign='left';ctx.letterSpacing='-0.5px';
+        ctx.fillText(nm,P,Math.round(H*0.56));
+      }
+      if(!hideDate){
+        ctx.fillStyle='rgba(160,255,200,0.45)';ctx.font=`400 ${Math.round(22*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';ctx.textAlign='left';
+        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),P,Math.round(H*0.56)+Math.round(36*S));
+      }
+
+      // stat tiles — dark glass style
+      const statY=Math.round(H*0.62);
+      const COLS2=2,gap2=Math.round(10*S);
+      const ROWS2=Math.ceil(selected.length/COLS2);
+      const tW2=(W-P*2-gap2)/COLS2,tH2=Math.min(Math.round(190*S),Math.floor((H-statY-P-gap2*(ROWS2-1))/Math.max(ROWS2,1)));
+      selected.forEach((s,i)=>{
+        const col=i%COLS2,row=Math.floor(i/COLS2);
+        const tx=P+col*(tW2+gap2),ty=statY+row*(tH2+gap2);
+        ctx.fillStyle='rgba(10,30,20,0.7)';
+        ctx.beginPath();ctx.roundRect(tx,ty,tW2,tH2,Math.round(10*S));ctx.fill();
+        ctx.strokeStyle='rgba(80,200,130,0.25)';ctx.lineWidth=Math.round(1*S);
+        ctx.beginPath();ctx.roundRect(tx,ty,tW2,tH2,Math.round(10*S));ctx.stroke();
+        // accent bar top
+        ctx.fillStyle='#50dc8c';ctx.beginPath();ctx.roundRect(tx,ty,tW2,Math.round(3*S),Math.round(2*S));ctx.fill();
+        const{num,unit}=statVal(s,act);
+        const iconS=Math.round(24*S);
+        drawIcon(ctx,STAT_ICONS[s.key]||'time',tx+tW2/2,ty+tH2*0.26,iconS,'rgba(80,220,140,0.7)');
+        ctx.fillStyle='rgba(160,255,200,0.55)';ctx.font=`700 ${Math.round(11*S)}px -apple-system,sans-serif`;ctx.textAlign='center';ctx.letterSpacing='0.05em';
+        ctx.fillText(s.label.toUpperCase(),tx+tW2/2,ty+tH2*0.54);
+        let vfs=Math.round(34*S);ctx.font=`900 ${vfs}px -apple-system,sans-serif`;
+        const disp=num+(unit?' '+unit:'');
+        while(vfs>10&&ctx.measureText(disp).width>tW2*0.88){vfs--;ctx.font=`900 ${vfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#a0ffcc';ctx.letterSpacing='-0.5px';
+        ctx.fillText(disp,tx+tW2/2,ty+tH2*0.86);ctx.letterSpacing='0';
+      });
+
+      // logo
+      if(!hideLogo){ctx.fillStyle='rgba(80,200,130,0.35)';ctx.font=`900 ${Math.round(18*S)}px -apple-system,sans-serif`;ctx.textAlign='right';ctx.letterSpacing='0.12em';
+      ctx.fillText('STRAVA',W-P,Math.round(H*0.56)+Math.round((hideDate?0:36)*S));}
+      break;
+    }
+
+    /* 18. GRAPHIC — visual stat circles + bars, designed for transparent bg */
+    case 'graphic':{
+      if(!skipBg){
+        ctx.fillStyle='rgba(10,10,10,0.92)';ctx.fillRect(0,0,W,H);
+      }
+
+      const isCycG=isRide(act);
+      // build a focused set of up to 4 key stats
+      const gStats=selected.slice(0,6);
+      const numS=gStats.length;
+
+      // top: big donut for first stat
+      if(numS>0){
+        const s0=gStats[0];const{num:n0,unit:u0}=statVal(s0,act);
+        const donutCx=W/2,donutCy=Math.round(H*0.27),donutR=Math.round(160*S);
+        // track
+        ctx.strokeStyle='rgba(255,255,255,0.07)';ctx.lineWidth=Math.round(22*S);ctx.lineCap='butt';
+        ctx.beginPath();ctx.arc(donutCx,donutCy,donutR,0,Math.PI*2);ctx.stroke();
+        // fill arc — use distance % of some max, or just 0.72 of circle
+        const arcFrac=0.72;
+        ctx.strokeStyle='#FC4C02';ctx.lineWidth=Math.round(22*S);ctx.lineCap='round';
+        ctx.shadowColor='rgba(252,76,2,0.5)';ctx.shadowBlur=Math.round(20*S);
+        ctx.beginPath();ctx.arc(donutCx,donutCy,donutR,-Math.PI/2,-Math.PI/2+arcFrac*Math.PI*2);ctx.stroke();
+        ctx.shadowBlur=0;
+        // inner text
+        ctx.fillStyle='rgba(255,255,255,0.35)';ctx.font=`700 ${Math.round(16*S)}px -apple-system,sans-serif`;ctx.textAlign='center';ctx.letterSpacing='0.08em';
+        ctx.fillText(s0.label.toUpperCase(),donutCx,donutCy-Math.round(28*S));
+        let dfs=Math.round(80*S);ctx.font=`900 ${dfs}px -apple-system,sans-serif`;
+        while(dfs>20&&ctx.measureText(n0).width>donutR*1.4){dfs-=2;ctx.font=`900 ${dfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#fff';ctx.letterSpacing='-2px';
+        ctx.fillText(n0,donutCx,donutCy+Math.round(28*S));ctx.letterSpacing='0';
+        if(u0){ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=`500 ${Math.round(22*S)}px -apple-system,sans-serif`;ctx.fillText(u0,donutCx,donutCy+Math.round(64*S));}
+      }
+
+      // title
+      if(!hideTitle){
+        const nm=act.name||'Activity';
+        let nfs=Math.round(40*S);ctx.font=`700 ${nfs}px -apple-system,sans-serif`;
+        while(nfs>16&&ctx.measureText(nm).width>W-P*2){nfs-=2;ctx.font=`700 ${nfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#fff';ctx.textAlign='center';ctx.letterSpacing='-0.5px';
+        ctx.fillText(nm,W/2,Math.round(H*0.52));
+      }
+      if(!hideDate){
+        ctx.fillStyle='rgba(255,255,255,0.38)';ctx.font=`400 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.letterSpacing='0';ctx.textAlign='center';
+        ctx.fillText((act.start_date?fmtDt(act.start_date):'')+' · '+(act.type||''),W/2,Math.round(H*0.52)+Math.round(32*S));
+      }
+
+      // remaining stats as bar-style tiles
+      const barStats=gStats.slice(1);
+      const bBaseY=Math.round(H*0.58);
+      const bH=Math.round(92*S),bGap=Math.round(10*S);
+      const bW=W-P*2;
+      barStats.forEach((s,i)=>{
+        const{num,unit}=statVal(s,act);
+        const by=bBaseY+i*(bH+bGap);
+        // bg bar
+        ctx.fillStyle='rgba(255,255,255,0.05)';
+        ctx.beginPath();ctx.roundRect(P,by,bW,bH,Math.round(8*S));ctx.fill();
+        // colored fill — fixed 65%
+        const fillFrac=0.65;
+        const fillW=bW*fillFrac;
+        ctx.fillStyle=`rgba(252,76,2,${0.2-i*0.02})`;
+        ctx.beginPath();ctx.roundRect(P,by,fillW,bH,Math.round(8*S));ctx.fill();
+        // left edge accent
+        ctx.fillStyle='#FC4C02';ctx.beginPath();ctx.roundRect(P,by,Math.round(4*S),bH,Math.round(2*S));ctx.fill();
+        // icon + label
+        const iconX=P+Math.round(40*S);
+        drawIcon(ctx,STAT_ICONS[s.key]||'time',iconX,by+bH/2,Math.round(22*S),'rgba(255,255,255,0.5)');
+        ctx.fillStyle='rgba(255,255,255,0.4)';ctx.font=`600 ${Math.round(13*S)}px -apple-system,sans-serif`;ctx.textAlign='left';ctx.letterSpacing='0.05em';
+        ctx.fillText(s.label.toUpperCase(),P+Math.round(66*S),by+bH*0.47);
+        // value right
+        const disp=num+(unit?' '+unit:'');
+        let vfs=Math.round(34*S);ctx.font=`800 ${vfs}px -apple-system,sans-serif`;
+        while(vfs>14&&ctx.measureText(disp).width>bW*0.38){vfs-=2;ctx.font=`800 ${vfs}px -apple-system,sans-serif`;}
+        ctx.fillStyle='#fff';ctx.textAlign='right';ctx.letterSpacing='-0.5px';
+        ctx.fillText(disp,P+bW-Math.round(20*S),by+bH*0.66);ctx.letterSpacing='0';
+      });
+
+      // route overlay — bottom right corner, small
+      if(polyline&&polyline.length>1&&!hideRoute){
+        const rX=W-Math.round(240*S),rY=H-Math.round(240*S),rS=Math.round(200*S);
+        ctx.globalAlpha=0.25;
+        drawRoute(ctx,polyline,rX,rY,rS,rS,'#FC4C02',Math.round(4*S));
+        ctx.globalAlpha=1;
+      }
+
+      if(!hideLogo){ctx.fillStyle='rgba(252,76,2,0.45)';ctx.font=`900 ${Math.round(20*S)}px -apple-system,sans-serif`;ctx.textAlign='right';ctx.letterSpacing='0.1em';
+      ctx.fillText('STRAVA',W-P,H-Math.round(44*S));}
       break;
     }
   }
@@ -951,18 +1139,18 @@ function openStoryModal(){
 
   picker.addEventListener('change',drawStoryCanvas);
 
-  // hide title / date toggles
+  // hide toggles — use onchange (not addEventListener) to prevent stacking on re-open
   const chkTitle=document.getElementById('chk-hideTitle');
   const chkDate=document.getElementById('chk-hideDate');
-  chkTitle.checked=hideTitle;chkDate.checked=hideDate;
-  chkTitle.addEventListener('change',()=>{hideTitle=chkTitle.checked;document.getElementById('lbl-hideTitle').style.borderColor=hideTitle?'var(--orange)':'var(--border)';drawStoryCanvas();});
-  chkDate.addEventListener('change',()=>{hideDate=chkDate.checked;document.getElementById('lbl-hideDate').style.borderColor=hideDate?'var(--orange)':'var(--border)';drawStoryCanvas();});
-
   const chkRoute=document.getElementById('chk-hideRoute');
-  if(chkRoute){
-    chkRoute.checked=hideRoute;
-    chkRoute.addEventListener('change',()=>{hideRoute=chkRoute.checked;document.getElementById('lbl-hideRoute').style.borderColor=hideRoute?'var(--orange)':'var(--border)';drawStoryCanvas();});
-  }
+  const chkLogo=document.getElementById('chk-hideLogo');
+  chkTitle.checked=hideTitle;chkDate.checked=hideDate;
+  if(chkRoute) chkRoute.checked=hideRoute;
+  if(chkLogo) chkLogo.checked=hideLogo;
+  chkTitle.onchange=()=>{hideTitle=chkTitle.checked;document.getElementById('lbl-hideTitle').style.borderColor=hideTitle?'var(--orange)':'var(--border)';drawStoryCanvas();};
+  chkDate.onchange=()=>{hideDate=chkDate.checked;document.getElementById('lbl-hideDate').style.borderColor=hideDate?'var(--orange)':'var(--border)';drawStoryCanvas();};
+  if(chkRoute) chkRoute.onchange=()=>{hideRoute=chkRoute.checked;document.getElementById('lbl-hideRoute').style.borderColor=hideRoute?'var(--orange)':'var(--border)';drawStoryCanvas();};
+  if(chkLogo) chkLogo.onchange=()=>{hideLogo=chkLogo.checked;document.getElementById('lbl-hideLogo').style.borderColor=hideLogo?'var(--orange)':'var(--border)';drawStoryCanvas();};
 
   const bgInput=document.getElementById('bgImageInput');
   const bgUploadBtn=document.getElementById('bgUploadBtn');
