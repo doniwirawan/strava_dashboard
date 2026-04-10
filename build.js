@@ -35,11 +35,22 @@ fs.writeFileSync(path.join(__dirname, 'dist', 'callback.html'), injectCallbackHt
   if (fs.existsSync(src)) fs.copyFileSync(src, path.join(__dirname, 'dist', f));
 });
 
-// copy css/ and js/ folders
+// copy css/ and js/ folders — inject placeholders into JS files
 function copyDir(src, dest) {
   fs.mkdirSync(dest, { recursive: true });
   fs.readdirSync(src).forEach(file => {
-    fs.copyFileSync(path.join(src, file), path.join(dest, file));
+    const srcFile = path.join(src, file);
+    const destFile = path.join(dest, file);
+    if (file.endsWith('.js')) {
+      let content = fs.readFileSync(srcFile, 'utf8');
+      content = content.replace(/__STRAVA_CLIENT_ID__/g,     ID);
+      content = content.replace(/__STRAVA_CLIENT_SECRET__/g, SECRET);
+      content = content.replace(/__SUPABASE_URL__/g,         SUPA_URL);
+      content = content.replace(/__SUPABASE_KEY__/g,         SUPA_KEY);
+      fs.writeFileSync(destFile, content);
+    } else {
+      fs.copyFileSync(srcFile, destFile);
+    }
   });
 }
 ['css', 'js'].forEach(dir => {
