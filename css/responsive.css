@@ -34,12 +34,6 @@
   .hamburger { display: none !important; }
 }
 
-@media (max-width: 640px) {
-  .seg-thumb { width: 120px; }
-  .seg-meta-val { font-size: 13px; }
-  .seg-info { padding: 10px 12px; gap: 8px; }
-  .seg-meta-item { padding: 0 12px 0 0; margin-right: 12px !important; }
-}
 
 @media (max-width: 600px) {
   main { padding: 12px; }
