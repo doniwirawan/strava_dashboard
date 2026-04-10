@@ -12,6 +12,18 @@ function drawStoryCanvas(){
   });
 }
 
+async function fetchStreams(actId){
+  if(!actId) return;
+  if(streamsCache[actId]){currentStreams=streamsCache[actId];return;}
+  try{
+    const data=await api(`/activities/${actId}/streams?keys=altitude,distance&key_by_type=true`);
+    streamsCache[actId]=data;
+    currentStreams=data;
+  }catch(e){
+    currentStreams=null;
+  }
+}
+
 function openStoryModal(){
   const picker=document.getElementById('activityPicker');
   picker.innerHTML=acts.slice(0,50).map((a,i)=>`<option value="${i}">${fmtDt(a.start_date)} — ${a.name} (${fmtD(a.distance)})</option>`).join('');
@@ -47,7 +59,18 @@ function openStoryModal(){
     });
   });
 
-  picker.onchange=drawStoryCanvas;
+  picker.onchange=async()=>{
+    const idx=parseInt(picker.value)||0;
+    const act=acts[idx]||{};
+    if(act.id) await fetchStreams(act.id);
+    drawStoryCanvas();
+  };
+  // pre-fetch streams for initial activity
+  (async()=>{
+    const idx=parseInt(picker.value)||0;
+    const act=acts[idx]||{};
+    if(act.id){await fetchStreams(act.id);drawStoryCanvas();}
+  })();
 
   // scheme picker
   const schemeSwatches={

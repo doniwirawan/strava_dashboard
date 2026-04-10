@@ -21,6 +21,8 @@ let customAccent = null; // override accent color
 let activeLayout = 'strip';
 let hideTitle = false, hideDate = false, hideRoute = false, hideLogo = false;
 let storyBgImage = null; // uploaded background image
+let currentStreams = null; // altitude+distance streams for selected activity
+const streamsCache = {}; // keyed by activity id
 
 const SCHEMES = {
   transp:   { card:'transparent', text:'#ffffff', muted:'rgba(255,255,255,0.55)', icon:'rgba(255,255,255,0.75)', div:'rgba(255,255,255,0.15)', accent:'#FC4C02', bg:'transparent' },
