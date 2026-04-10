@@ -739,15 +739,32 @@ function drawLayout(canvas,act,selected,sc,layout){
 
       // stat rows with waveform between each
       const dist3=fmtD(act.distance||0);
-      const pace3=act.moving_time&&act.distance&&act.distance>0?(()=>{const s=Math.round((act.moving_time/(act.distance/1000)));return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}/km`;})():'—';
       const elev3=Math.round(act.total_elevation_gain||0)+'m';
       const time3=fmtT(act.moving_time||0);
+      const isCyc=isRide(act);
 
-      const statRows=[
-        {label:'Distance',val:dist3,right:elev3,rLbl:'Elev Gain'},
-        {label:'Pace',    val:pace3,right:act.max_speed?kmh(act.max_speed)+' km/h max':'',rLbl:'Fastest'},
-        {label:'Time',    val:time3,right:'',rLbl:''},
-      ];
+      // cycling: Speed / Power rows; running/other: Pace / HR rows
+      let statRows;
+      if(isCyc){
+        const avgSpd3=act.average_speed?kmh(act.average_speed)+' km/h':'—';
+        const maxSpd3=act.max_speed?kmh(act.max_speed)+' km/h':'';
+        const pwr3=act.average_watts?Math.round(act.average_watts)+' W':'—';
+        const maxPwr3=act.max_watts?Math.round(act.max_watts)+' W':'';
+        const cad3=act.average_cadence?Math.round(act.average_cadence)+' rpm':'';
+        statRows=[
+          {label:'Distance', val:dist3,   right:elev3,   rLbl:'Elevation'},
+          {label:'Avg Speed',val:avgSpd3, right:maxSpd3, rLbl:maxSpd3?'Max Speed':''},
+          {label:'Time',     val:time3,   right:pwr3!=='—'?pwr3:(cad3||''), rLbl:pwr3!=='—'?'Avg Power':(cad3?'Cadence':'')},
+        ];
+      } else {
+        const pace3=act.moving_time&&act.distance&&act.distance>0?(()=>{const s=Math.round((act.moving_time/(act.distance/1000)));return`${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}/km`;})():'—';
+        const hr3=act.average_heartrate?Math.round(act.average_heartrate)+' bpm':'';
+        statRows=[
+          {label:'Distance',val:dist3, right:elev3, rLbl:'Elev Gain'},
+          {label:'Pace',    val:pace3, right:act.max_speed?kmh(act.max_speed)+' km/h max':'', rLbl:act.max_speed?'Fastest':''},
+          {label:'Time',    val:time3, right:hr3,   rLbl:hr3?'Avg HR':''},
+        ];
+      }
       const rowH=Math.round(110*S),waveH=Math.round(38*S);
 
       statRows.forEach((r,i)=>{
@@ -811,10 +828,8 @@ function drawLayout(canvas,act,selected,sc,layout){
           const tx=(Math.sin(i*1.7)*0.5+0.5)*W,ty=(Math.sin(i*2.3+1)*0.5+0.5)*H;
           ctx.beginPath();ctx.arc(tx,ty,Math.random()*2+0.5,0,Math.PI*2);ctx.fill();
         }
-      } else {
-        // darken the uploaded photo more for readability
-        ctx.fillStyle='rgba(0,0,0,0.35)';ctx.fillRect(0,0,W,H);
       }
+      // photo BG: main drawLayout already applied the image + 0.45 overlay
 
       // ── route — drawn large across full canvas ──
       if(polyline&&polyline.length>1){
@@ -830,11 +845,14 @@ function drawLayout(canvas,act,selected,sc,layout){
       }
 
       // ── top stat pill row ──
+      const isCycE=isRide(act);
       const topStats=[
-        {lbl:'D+', val:Math.round(act.total_elevation_gain||0)+'m'},
-        {lbl:'Distance', val:fmtD(act.distance||0)},
-        {lbl:'Avg HR', val:act.average_heartrate?Math.round(act.average_heartrate)+'bpm':'—'},
-        {lbl:'Time', val:fmtT(act.moving_time||0)},
+        {lbl:'D+',      val:Math.round(act.total_elevation_gain||0)+'m'},
+        {lbl:'Distance',val:fmtD(act.distance||0)},
+        isCycE
+          ? {lbl:'Avg Speed', val:act.average_speed?kmh(act.average_speed)+' km/h':'—'}
+          : {lbl:'Avg HR',    val:act.average_heartrate?Math.round(act.average_heartrate)+'bpm':'—'},
+        {lbl:'Time',    val:fmtT(act.moving_time||0)},
       ];
       const pillH=Math.round(72*S),pillY=Math.round(64*S);
       // pill background
