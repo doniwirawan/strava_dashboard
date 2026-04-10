@@ -276,104 +276,210 @@ function renderRewind(filterYear){
   });
 }
 
-/* ── CHALLENGES / KOMs ── */
+/* ── TROPHIES / KOMs ── */
 async function renderChallenges(){
   const el=document.getElementById('challengesGrid');
-  el.innerHTML='<p style="color:var(--muted);padding:8px">Loading achievements…</p>';
+  el.innerHTML='<p style="color:var(--muted);padding:8px">Loading trophies…</p>';
 
-  // KOM/QOM/CR count from starred segments
-  let komList=[];
+  const athleteId=currentAthlete?.id||(acts[0]?.athlete?.id)||0;
+
+  // parallel: KOMs + lifetime stats
+  let komList=[], st=null;
   try{
-    // fetch up to 4 pages of KOMs
-    let page=1;
-    while(page<=4){
-      const r=await api(`/athletes/${currentAthlete?currentAthlete.id:(acts[0]&&acts[0].athlete&&acts[0].athlete.id)||0}/koms?page=${page}&per_page=50`);
-      if(!r||!r.length) break;
-      komList=[...komList,...r];
-      if(r.length<50) break;
-      page++;
-    }
+    [komList, st]=await Promise.all([
+      (async()=>{
+        let list=[],page=1;
+        while(page<=4){
+          const r=await api(`/athletes/${athleteId}/koms?page=${page}&per_page=50`);
+          if(!r||!r.length) break;
+          list=[...list,...r];
+          if(r.length<50) break;
+          page++;
+        }
+        return list;
+      })(),
+      api(`/athletes/${athleteId}/stats`).catch(()=>null),
+    ]);
   }catch{}
 
-  // achievement/PR counts from cached activities
-  const totalAch=acts.reduce((s,a)=>s+(a.achievement_count||0),0);
-  const totalPR=acts.reduce((s,a)=>s+(a.pr_count||0),0);
+  // from cached activities (last 200)
+  const totalAch =acts.reduce((s,a)=>s+(a.achievement_count||0),0);
+  const totalPR  =acts.reduce((s,a)=>s+(a.pr_count||0),0);
   const totalKudos=acts.reduce((s,a)=>s+(a.kudos_count||0),0);
-
-  // computed achievement badges from activities
-  const rides=acts.filter(isRide);
-  const runs=acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
-  const totalRideDist=rides.reduce((s,a)=>s+(a.distance||0),0)/1000;
-  const totalElev=acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
+  const rides    =acts.filter(isRide);
+  const runs     =acts.filter(a=>a.type==='Run'||a.type==='VirtualRun');
   const longestRide=rides.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
-  const longestRun=runs.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
+  const longestRun =runs.reduce((m,a)=>a.distance>m?a.distance:m,0)/1000;
 
-  function trophyImg(key,color,emoji){
-    return `<div class="ach-badge-icon" style="background:radial-gradient(circle at 35% 35%,${color}55 0%,${color}18 60%,${color}08 100%);border:3px solid ${color};box-shadow:0 0 18px ${color}44,inset 0 1px 0 rgba(255,255,255,.18);">${emoji}</div>`;
+  // prefer lifetime stats from API if available
+  const art =st?.all_ride_totals;
+  const yrt =st?.ytd_ride_totals;
+  const rrt =st?.recent_ride_totals;
+  const arun=st?.all_run_totals;
+  const bigRide =(st?.biggest_ride_distance||0)/1000;
+  const bigClimb=(st?.biggest_climb_elevation_gain||0);
+
+  const lifetimeKm   =(art?.distance||0)/1000;
+  const lifetimeElev =(art?.elevation_gain||0);
+  const lifetimeRides=(art?.count||0);
+  const lifetimeHours=Math.round((art?.moving_time||0)/3600);
+  const ytdKm  =(yrt?.distance||0)/1000;
+  const ytdElev=(yrt?.elevation_gain||0);
+  const ytdRides=(yrt?.count||0);
+  const recentKm=(rrt?.distance||0)/1000;
+
+  function statCell(lbl,val,unit,color){
+    return `<div style="text-align:center;padding:12px 16px">
+      <div style="font-size:26px;font-weight:900;color:${color||'var(--text)'};letter-spacing:-.5px;line-height:1">${val}</div>
+      <div style="font-size:10px;font-weight:600;color:var(--muted);margin-top:2px">${unit}</div>
+      <div style="font-size:9px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin-top:1px;opacity:.7">${lbl}</div>
+    </div>`;
   }
 
-  const badges=[
-    {key:'KOM',  emoji:'👑',name:'KOM / QOM / CR',val:komList.length,unit:'segments',color:'#ffd700',unlocked:komList.length>0},
-    {key:'ACH',  emoji:'🏆',name:'Total Achievements',val:totalAch.toLocaleString(),unit:'on Strava',color:'#ffd700',unlocked:totalAch>0},
-    {key:'PR',   emoji:'⚡',name:'Personal Records',val:totalPR.toLocaleString(),unit:'PRs logged',color:'#fc4c02',unlocked:totalPR>0},
-    {key:'KUDOS',emoji:'👍',name:'Kudos Received',val:totalKudos.toLocaleString(),unit:'kudos',color:'#fc4c02',unlocked:totalKudos>0},
-    {key:'CENTURY',emoji:'🌍',name:'Century Rider',val:(longestRide).toFixed(1),unit:'km best',color:'#4da8ff',unlocked:longestRide>=100},
-    {key:'EVEREST',emoji:'🏔️',name:'Everest Climber',val:Math.round(totalElev).toLocaleString(),unit:'m total',color:'#4da8ff',unlocked:totalElev>=8848},
-    {key:'HALF', emoji:'🏃',name:'Half Marathoner',val:(longestRun).toFixed(1),unit:'km best',color:'#00cc88',unlocked:longestRun>=21.1},
-    {key:'DIST', emoji:'🚴',name:'1,000 km Club',val:Math.round(totalRideDist).toLocaleString(),unit:'km ridden',color:'#00cc88',unlocked:totalRideDist>=1000},
-  ];
+  function divider(){ return `<div style="width:1px;background:var(--border);align-self:stretch;margin:10px 0"></div>`; }
 
-  // athlete profile card
   let html='';
+
+  /* ── 1. ATHLETE HERO CARD ── */
   if(currentAthlete){
-    const profileImg=currentAthlete.profile_medium||currentAthlete.profile||'';
+    const img =currentAthlete.profile_medium||currentAthlete.profile||'';
     const name=(currentAthlete.firstname||'')+' '+(currentAthlete.lastname||'');
     const city=[currentAthlete.city,currentAthlete.state,currentAthlete.country].filter(Boolean).join(', ');
-    html+=`<div class="card" style="display:flex;align-items:center;gap:20px;padding:20px 24px;margin-bottom:20px;border-color:rgba(252,76,2,.2);background:linear-gradient(135deg,rgba(252,76,2,.06) 0%,transparent 60%)">
-      ${profileImg?`<img src="${profileImg}" style="width:80px;height:80px;border-radius:50%;border:3px solid var(--orange);flex-shrink:0;object-fit:cover" onerror="this.style.display='none'">` : ''}
-      <div style="flex:1;min-width:0">
-        <div style="font-size:22px;font-weight:900;letter-spacing:-.5px">${name}</div>
-        ${city?`<div style="font-size:12px;color:var(--muted);margin-top:2px">${city}</div>`:''}
-        <div style="display:flex;gap:20px;margin-top:12px;flex-wrap:wrap">
-          <div><div style="font-size:18px;font-weight:800;color:var(--orange)">${totalAch.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Achievements</div></div>
-          <div><div style="font-size:18px;font-weight:800;color:var(--text)">${totalPR.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">PRs</div></div>
-          <div><div style="font-size:18px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Kudos</div></div>
-          <div><div style="font-size:18px;font-weight:800;color:#ffd700">${komList.length}</div><div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">KOMs</div></div>
+    const since=currentAthlete.created_at?new Date(currentAthlete.created_at).getFullYear():null;
+    const followers=currentAthlete.follower_count||null;
+    const following=currentAthlete.friend_count||null;
+    const ftp=currentAthlete.ftp||null;
+
+    html+=`<div class="card" style="padding:0;overflow:hidden;margin-bottom:16px;border-color:rgba(252,76,2,.25);background:linear-gradient(135deg,rgba(252,76,2,.07) 0%,transparent 55%)">
+      <div style="display:flex;align-items:center;gap:20px;padding:22px 24px">
+        ${img?`<img src="${img}" alt="" style="width:88px;height:88px;border-radius:50%;border:3px solid var(--orange);flex-shrink:0;object-fit:cover" onerror="this.style.display='none'">` : ''}
+        <div style="flex:1;min-width:0">
+          <div style="font-size:24px;font-weight:900;letter-spacing:-.6px;line-height:1.1">${name}</div>
+          <div style="font-size:12px;color:var(--muted);margin-top:3px;display:flex;gap:12px;flex-wrap:wrap">
+            ${city?`<span>${city}</span>`:''}
+            ${since?`<span>Since ${since}</span>`:''}
+            ${ftp?`<span>FTP ${ftp}w</span>`:''}
+          </div>
+          <div style="display:flex;gap:16px;margin-top:14px;flex-wrap:wrap">
+            <div><span style="font-size:20px;font-weight:800;color:var(--orange)">${komList.length}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">KOMs</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalAch.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Achievements</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalPR.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">PRs</span></div>
+            <div><span style="font-size:20px;font-weight:800;color:var(--text)">${totalKudos.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Kudos</span></div>
+            ${followers!=null?`<div><span style="font-size:20px;font-weight:800;color:var(--text)">${followers.toLocaleString()}</span><span style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-left:5px">Followers</span></div>`:''}
+          </div>
         </div>
       </div>
     </div>`;
   }
 
-  html+=`<div class="ach-grid">`;
+  /* ── 2. LIFETIME STATS ── */
+  if(art){
+    html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">All-time</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:16px">
+      <div style="display:flex;flex-wrap:wrap">
+        ${statCell('Rides',lifetimeRides.toLocaleString(),'activities','var(--orange)')}
+        ${divider()}
+        ${statCell('Distance',Math.round(lifetimeKm).toLocaleString(),'km','var(--text)')}
+        ${divider()}
+        ${statCell('Moving Time',lifetimeHours.toLocaleString(),'hours','var(--text)')}
+        ${divider()}
+        ${statCell('Elevation',Math.round(lifetimeElev/1000).toLocaleString(),'k meters','var(--text)')}
+        ${bigRide>0?divider()+statCell('Biggest Ride',bigRide.toFixed(1),'km','#4da8ff'):''}
+        ${bigClimb>0?divider()+statCell('Biggest Climb',Math.round(bigClimb),'m','#4da8ff'):''}
+        ${arun?.count?divider()+statCell('Total Runs',arun.count.toLocaleString(),'activities','#00cc88'):''}
+      </div>
+    </div>`;
+  }
+
+  /* ── 3. YTD + RECENT ── */
+  if(yrt){
+    const yr=new Date().getFullYear();
+    html+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div>
+        <div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">${yr} — Year to date</div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="display:flex;flex-wrap:wrap">
+            ${statCell('Rides',ytdRides,'activities','var(--orange)')}
+            ${divider()}
+            ${statCell('Distance',Math.round(ytdKm).toLocaleString(),'km','var(--text)')}
+            ${divider()}
+            ${statCell('Elevation',Math.round(ytdElev/1000*10)/10,'k m','var(--text)')}
+          </div>
+        </div>
+      </div>
+      ${rrt?`<div>
+        <div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Last 4 weeks</div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div style="display:flex;flex-wrap:wrap">
+            ${statCell('Rides',rrt.count,'activities','var(--orange)')}
+            ${divider()}
+            ${statCell('Distance',Math.round(recentKm).toLocaleString(),'km','var(--text)')}
+            ${divider()}
+            ${statCell('Elevation',Math.round((rrt.elevation_gain||0)/1000*10)/10,'k m','var(--text)')}
+          </div>
+        </div>
+      </div>`:''}
+    </div>`;
+  }
+
+  /* ── 4. ACHIEVEMENT BADGES ── */
+  function trophyIcon(color,emoji){
+    return `<div class="ach-badge-icon" style="background:radial-gradient(circle at 35% 35%,${color}55 0%,${color}18 60%,${color}08 100%);border:3px solid ${color};box-shadow:0 0 18px ${color}44,inset 0 1px 0 rgba(255,255,255,.18);">${emoji}</div>`;
+  }
+
+  // use lifetime data where available
+  const ltDist=lifetimeKm||rides.reduce((s,a)=>s+(a.distance||0),0)/1000;
+  const ltElev=lifetimeElev||acts.reduce((s,a)=>s+(a.total_elevation_gain||0),0);
+  const biggestRide=bigRide>0?bigRide:longestRide;
+
+  const badges=[
+    {emoji:'👑',name:'KOM / QOM',       val:komList.length,        unit:'segments',  color:'#ffd700', unlocked:komList.length>0},
+    {emoji:'🏆',name:'Achievements',     val:totalAch.toLocaleString(), unit:'on Strava', color:'#ffd700', unlocked:totalAch>0},
+    {emoji:'⚡',name:'Personal Records', val:totalPR.toLocaleString(),  unit:'PRs',       color:'#fc4c02', unlocked:totalPR>0},
+    {emoji:'👍',name:'Kudos',            val:totalKudos.toLocaleString(),unit:'received', color:'#fc4c02', unlocked:totalKudos>0},
+    {emoji:'🌍',name:'Century Rider',    val:biggestRide.toFixed(1),unit:'km best',   color:'#4da8ff', unlocked:biggestRide>=100},
+    {emoji:'🏔️',name:'Everest Climber', val:Math.round(ltElev/1000)+'k',unit:'m climbed',color:'#4da8ff',unlocked:ltElev>=8848},
+    {emoji:'🏃',name:'Half Marathoner', val:longestRun.toFixed(1), unit:'km best',   color:'#00cc88', unlocked:longestRun>=21.1},
+    {emoji:'🚴',name:'1,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#00cc88',unlocked:ltDist>=1000},
+    {emoji:'🔥',name:'5,000 km Club',   val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#fb923c',unlocked:ltDist>=5000},
+    {emoji:'🌐',name:'10,000 km Club',  val:Math.round(ltDist).toLocaleString(),unit:'km total',color:'#a78bfa',unlocked:ltDist>=10000},
+    {emoji:'🎯',name:'100 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#fb923c',unlocked:(lifetimeRides||rides.length)>=100},
+    {emoji:'💯',name:'500 Rides',        val:(lifetimeRides||rides.length).toLocaleString(),unit:'rides',color:'#a78bfa',unlocked:(lifetimeRides||rides.length)>=500},
+  ];
+
+  html+=`<div style="margin-bottom:6px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">Badges</div>`;
+  html+=`<div class="ach-grid" style="margin-bottom:20px">`;
   html+=badges.map(b=>`
     <div class="ach-badge${b.unlocked?' unlocked':''}" style="--ach-color:${b.color}">
       ${b.unlocked?'<div class="ach-badge-bar"></div>':''}
-      ${trophyImg(b.key,b.color,b.emoji)}
+      ${trophyIcon(b.color,b.emoji)}
       <div class="ach-badge-val" style="color:${b.unlocked?b.color:'var(--muted)'}">${b.val}</div>
       <div class="ach-badge-unit">${b.unit}</div>
       <div class="ach-badge-name" style="color:${b.unlocked?'var(--text)':'var(--muted)'}">${b.name}</div>
     </div>`).join('');
   html+='</div>';
 
+  /* ── 5. KOM LIST ── */
   if(komList.length){
-    html+=`<div class="section-title" style="font-size:11px;margin-bottom:12px">KOM / QOM / CR Segments (${komList.length})</div>`;
+    html+=`<div style="margin-bottom:10px;font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)">KOM / QOM / CR — ${komList.length} Segments</div>`;
     html+=`<div class="kom-list">`;
-    html+=komList.slice(0,30).map(e=>{
+    html+=komList.slice(0,40).map(e=>{
       const seg=e.segment||e;
       const dist=seg.distance?(seg.distance/1000).toFixed(2)+' km':'—';
       const grade=seg.average_grade!=null?seg.average_grade.toFixed(1)+'%':'—';
       const t=fmtT(e.elapsed_time||0);
+      const loc=[seg.city,seg.state].filter(Boolean).join(', ');
       return `<div class="kom-item">
         <div class="kom-crown">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="#ffd700"><path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm2 3h10v2H7v-2z"/></svg>
         </div>
-        <div style="min-width:0">
+        <div style="min-width:0;flex:1">
           <div style="font-size:12px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${seg.name||'Segment'}</div>
-          <div style="font-size:11px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ${t}</div>
+          <div style="font-size:10px;color:var(--muted);margin-top:2px">${dist} · ${grade} · ⏱ ${t}${loc?' · '+loc:''}</div>
         </div>
       </div>`;
     }).join('');
-    if(komList.length>30) html+=`<div style="color:var(--muted);font-size:12px;padding:10px">+${komList.length-30} more</div>`;
+    if(komList.length>40) html+=`<div style="color:var(--muted);font-size:12px;padding:10px">+${komList.length-40} more KOMs</div>`;
     html+='</div>';
   }
 
